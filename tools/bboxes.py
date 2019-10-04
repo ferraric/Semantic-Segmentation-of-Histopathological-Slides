@@ -1,5 +1,5 @@
 import numpy as np
-from tools.helpers import find_nonzero_intervals, threshold
+from helpers import find_nonzero_intervals, threshold
 
 
 def compute_boxes(image, intensity_threshold=255):
