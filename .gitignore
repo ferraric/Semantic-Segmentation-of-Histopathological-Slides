@@ -1,0 +1,8 @@
+__pycache__
+
+# IPython notebook
+*.ipynb_checkpoints
+
+.idea/workspace.xml
+.idea/usage.statistics.xml
+.idea/tasks.xml
