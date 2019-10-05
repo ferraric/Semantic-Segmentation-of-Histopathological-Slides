@@ -32,14 +32,18 @@ You need to create the following files:
     - data generator
     - trainer
 
+### Logging/Experiment Tracking 
 
-2. Have a look at /tools/getting_started_with_slides.ipynb to get familiar with the type of data that we are working with. 
-
-3. For Logging we use comet.ml. Why do we use this and not Tensorboard? Comet answers in the following way:
-Comet provides deeper reporting and more features compared to Tensorboard. Additionally, Comet allows users to view 
+For Logging we use comet.ml. Why do we use this and not Tensorboard? Comet answers in the following way:
+"Comet provides deeper reporting and more features compared to Tensorboard. Additionally, Comet allows users to view 
 multiple experiments and manage all experiments from a single location, whereas Tensorboard is focused on single
- experiment views and runs locally on your machine. Finally, Tensorboard does not scale whereas Comet supports 1m+ experiments.
+ experiment views and runs locally on your machine. Finally, Tensorboard does not scale whereas Comet supports 1m+ experiments."
+ 
 Especially for a larger Team its essential to track progress and be able to reproduce experiments. Lastly it allows you to 
- track your datasets and it calculates your git code hash even if you have uncommited changes. Also its really cool. 
-Also, you don't need to do anything except sign up(its free for students) and download it. Follow the instructions on their website
+ track your datasets and it calculates your git code hash even if you have uncommited changes. 
+Also, you don't need to do anything except sign up(its free for students) and download it. Follow the instructions on their website (https://www.comet.ml/)
 . Everything else I implemented in the base classes. 
+
+### General 
+Have a look at /tools/getting_started_with_slides.ipynb to get familiar with the type of data that we are working with. 
+
