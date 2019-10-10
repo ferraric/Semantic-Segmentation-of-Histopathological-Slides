@@ -47,3 +47,38 @@ Also, you don't need to do anything except sign up(its free for students) and do
 ### General 
 Have a look at /tools/getting_started_with_slides.ipynb to get familiar with the type of data that we are working with. 
 
+### First steps (Quick-start)
+
+#### Adding an environment file
+
+Before you start, please add a file called ".env" in the same directory as this README.md is in.
+Please copy-paste the below contents:
+
+```
+PROJECT_PATH="/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides"
+```
+
+and make it point to your project root folder.
+
+#### Creating a virtualenv 
+
+Create a virtualenvironment using following command (in the root folder):
+
+```
+virtualenv -p /usr/local/bin/python3.7 venv
+```
+
+where you point to your python 3 version. To get your python 3 version use 
+
+```
+which python3
+```
+
+
+#### Installing dependencies with pip
+
+Install all dependencies into the virtualenvironment that you just created
+```
+source venv/bin/activate
+pip install -r requirements.txt
+```
