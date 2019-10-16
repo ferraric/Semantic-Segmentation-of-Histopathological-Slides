@@ -1,6 +1,6 @@
 import openslide
 from PIL.ImageDraw import Draw
-from bboxes import compute_boxes_iteratively
+from tools.bboxes import compute_boxes_iteratively
 
 
 class Slide(openslide.OpenSlide):
