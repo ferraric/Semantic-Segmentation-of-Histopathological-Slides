@@ -82,3 +82,9 @@ Install all dependencies into the virtualenvironment that you just created
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+#### Getting the Data
+Execute 
+```
+wget -r -p --user user --password pw https://digipath.ise.inf.ethz.ch/mfec/
+```
