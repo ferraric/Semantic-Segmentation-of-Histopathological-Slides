@@ -4,7 +4,7 @@ import json
 import os
 import random
 
-from data_loader.data_generator import DataGenerator
+from data_loader.example_data_loader import ExampleDataLoader
 from models.example_segmentation_model import ExampleSegmentationModel
 from trainers.example_segmentation_trainer import ExampleSegmentationTrainer
 from utils.config import process_config
@@ -52,7 +52,7 @@ def main():
         json.dump(config, json_file)
 
     # create your data generator and dump config file into it
-    data = DataGenerator(config, experiment)
+    data = ExampleDataLoader(config, experiment)
 
     # create a dummy model and feed it a random input data to get the architecture as summary
     dummy_model = ExampleSegmentationModel(config)
