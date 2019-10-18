@@ -2,7 +2,7 @@ import numpy as np
 import tensorflow as tf
 
 
-class DataGenerator:
+class ExampleDataLoader:
     def __init__(self, config, comet_logger):
         self.config = config
         self.comet_logger = comet_logger
@@ -34,7 +34,3 @@ class DataGenerator:
 
         self.test_data = tf.data.Dataset.from_tensor_slices((self.inputs, self.labels))
         self.test_data = self.test_data.batch(self.config.batch_size)
-
-    def next_batch(self, batch_size):
-        idx = np.random.choice(500, batch_size)
-        yield self.input[idx], self.y[idx]
