@@ -5,7 +5,7 @@ from PIL import Image
 
 
 class CreateImageSegmentationPair:
-    def __init__(self, input_folder, output_folder, boxes_threshold, level):
+    def __init__(self, input_folder, output_folder, boxes_threshold, level, text_file_with_annotation_names = None):
         # Make some assertions about the files in the folder etc.
         assert os.path.isdir(input_folder), "The given input path has to be a directory"
         assert not os.path.isdir(
@@ -19,12 +19,21 @@ class CreateImageSegmentationPair:
         self.valid_slides_and_annotations = []
 
         all_folder_elements = os.listdir(input_folder)
+        annotation_folder_elements = all_folder_elements
+        if(text_file_with_annotation_names != None):
+            annotation_folder_elements = []
+            # if a text file with annotation names was given, then don't look for annotations matching a .mrxs name
+            # all the elements of the input_folder, but look only at the names given by the text file.
+            with open(text_file_with_annotation_names, "r") as f:
+                for line in f:
+                    annotation_folder_elements.append(line.rstrip())
+
         for element in all_folder_elements:
             if os.path.splitext(element)[1] == ".mrxs":
                 # make sure the file has an annotation
                 slide_name = os.path.splitext(element)[0]
                 found_an_annotation = False
-                for comparison_element in all_folder_elements:
+                for comparison_element in annotation_folder_elements:
                     if comparison_element.startswith(
                         slide_name
                     ) and comparison_element.endswith("label.png"):
@@ -33,6 +42,7 @@ class CreateImageSegmentationPair:
                         self.valid_slides_and_annotations.append(
                             (element, comparison_element)
                         )
+                        break
                 assert (
                     found_an_annotation
                 ), "We have not found an annotation for slide {}".format(slide_name)
@@ -60,8 +70,6 @@ class CreateImageSegmentationPair:
 
             # Find the correspondence of segmentation and the box of interest
             _ = slide.compute_boxes(intensity_threshold=self.box_threshold)
-            index_to_box_of_interest = 0
-            max_red_and_blue = 0
             for index, box in enumerate(slide.boxes[self.level]):
                 print("     We are at box {} out of {} boxes".format(index, len(slide.boxes[self.level])))
                 cropped_annotation = annotation.crop(box)
@@ -70,24 +78,19 @@ class CreateImageSegmentationPair:
                 # the first channel is the white channel, the second and third indicate the blue and red color
                 color_histogram = resized_cropped_annotation.histogram()[:3]
                 red_and_blue = color_histogram[1] + color_histogram[2]
-                if red_and_blue > max_red_and_blue:
-                    max_red_and_blue = red_and_blue
-                    index_to_box_of_interest = index
+                if red_and_blue > 0:
 
-            # We know know the box of interest. Let's crop the image and annotation to that box and save the resulting images.
-            # We didn't directly save the images and annotations already cropped before, because of memory
-            box_of_interest = slide.boxes[self.level][index_to_box_of_interest]
-            slide_of_interest = slide.get_region(box_of_interest, self.level)
-            annotation_of_interest = annotation.crop(box_of_interest)
-            slide_of_interest.save(
-                os.path.join(self.output_folder, slide_name + ".png")
-            )
-            annotation_of_interest.save(
-                os.path.join(self.output_folder, annotation_name)
-            )
-
-
-
+                    # We now know the box of interest. Let's crop the image and annotation to that box and save the resulting images.
+                    # We didn't directly save the images and annotations already cropped before, because of memory
+                    box_of_interest = slide.boxes[self.level][index]
+                    slide_of_interest = slide.get_region(box_of_interest, self.level)
+                    annotation_of_interest = annotation.crop(box_of_interest)
+                    slide_of_interest.save(
+                        os.path.join(self.output_folder, slide_name + "_{}".format(str(index)) + ".png")
+                    )
+                    annotation_of_interest.save(
+                        os.path.join(self.output_folder, annotation_name[:-4] + "_{}".format(str(index) + ".png"))
+                    )
 
 
 if __name__ == "__main__":
@@ -104,8 +107,14 @@ if __name__ == "__main__":
         "--level",
         help="Add level threshold to indicate the resolution you want to have in your dataset",
     )
+    argparser.add_argument(
+        "-a",
+        "--annotation_names",
+        help="Add a path to a text file that contains annotation file names. If this text file is given, the corresponding"
+             "annotation file for a .mrxs file will only be looked up from within the names given by this file.",
+    )
     args = argparser.parse_args()
     dataset_creator = CreateImageSegmentationPair(
-        args.inputfolder, args.outputfolder, int(args.thresholdofbox), int(args.level)
+        args.inputfolder, args.outputfolder, int(args.thresholdofbox), int(args.level), args.annotation_names
     )
     dataset_creator.create_dataset_of_image_segmentation_pairs()
