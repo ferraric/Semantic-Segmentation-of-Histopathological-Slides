@@ -12,11 +12,8 @@ class BaseTrain:
             "num_epochs" in self.config
         ), "You need to define the parameter 'num_epochs' in your config file."
         assert (
-            "num_iter_per_epoch" in self.config
-        ), "You need to define the parameter 'num_iter_per_epoch' in your config file."
-        assert (
-            "test_every_x_iter" in self.config
-        ), "You need to define the parameter 'test_every_x_iter' in your config file."
+            "validate_every_x_batches" in self.config
+        ), "You need to define the parameter 'validate_every_x_batches' in your config file."
 
         # Add hyperparameters of config file to Comet Logger
         comet_logger.log_parameters(config)
@@ -31,18 +28,22 @@ class BaseTrain:
     def train_epoch(self):
         """
         implement the logic of epoch:
-        -loop over the number of iterations in the config and call the train step
-        -add any summaries you want using the summary
+        - loop over the number of iterations in the config and call the train step
+        - add any summaries you want using the summary
         """
         raise NotImplementedError
 
-    def train_step(self):
+    def train_step(self, x_batch_train, y_batch_train):
         """
         implement the logic of the train step
+
+         Args:
+            x_batch_train:     batch of training examples
+            y_batch_train:     batch of training labels
         """
         raise NotImplementedError
 
-    def test_step(self):
+    def validation_step(self):
         """implement the logic of the test step"""
         raise NotImplementedError
 
