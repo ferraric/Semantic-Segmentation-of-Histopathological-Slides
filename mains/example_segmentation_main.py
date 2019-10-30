@@ -4,14 +4,15 @@ import json
 import os
 import random
 import sys
+
 sys.path.append('../')
 
-from data_loader.data_generator import DataGenerator
+from data_loader.example_data_loader import DataGenerator
 from models.example_segmentation_model import ExampleSegmentationModel
 from trainers.example_segmentation_trainer import ExampleSegmentationTrainer
 from utils.config import process_config
 from utils.dirs import create_dirs
-from utils.arg import get_args
+from utils.utils import get_args
 
 
 def main():
@@ -45,7 +46,7 @@ def main():
     print("...creating folder {}".format(config.summary_dir))
 
     with open(
-        os.path.join(config.summary_dir, "config_summary.json"), "w"
+            os.path.join(config.summary_dir, "config_summary.json"), "w"
     ) as json_file:
         json.dump(config, json_file)
 
