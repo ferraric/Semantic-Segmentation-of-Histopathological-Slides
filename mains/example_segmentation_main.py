@@ -13,6 +13,7 @@ from trainers.example_segmentation_trainer import ExampleSegmentationTrainer
 from utils.config import process_config
 from utils.dirs import create_dirs
 from utils.utils import get_args
+from utils.logger import log_model_architecture_to
 
 
 def main():
@@ -54,7 +55,7 @@ def main():
 
     model = ExampleSegmentationModel(config)
     data_input_shape = next(iter(data.train_data))[0].shape
-    model.log_model_architecture_to(experiment, data_input_shape)
+    log_model_architecture_to(model, experiment, data_input_shape, config.summary_dir)
 
     trainer = ExampleSegmentationTrainer(model, data, config, experiment)
     trainer.train()
