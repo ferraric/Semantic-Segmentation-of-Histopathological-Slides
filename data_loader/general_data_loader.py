@@ -1,6 +1,5 @@
 import tensorflow as tf
 import pathlib
-import os
 
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
