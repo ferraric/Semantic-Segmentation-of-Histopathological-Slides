@@ -7,8 +7,6 @@ Mycosis fungoides (MF) is a slowly progressing but potentially life-threatening 
 The diagnosis of MF and eczema is usually based on the microscopic examination of histopathological slides (thin slices of stained tissue) and relies mostly on the presence of atypical lymphocytes in the epidermis. However, histological distinction from eczema may be very difficult due to similar histological features. Thus the final diagnosis of early MF is very challenging and relies on guidelines that include multiple  eighted criteria such as the clinical appearance, histopathology, immune-histology, and molecular pathology.
 
  
- 
-
 ### Goal
 
 The aim of this project is to develop machine learning techniques that can detect and highlight relevant features in histopathological images in order to support clinicians in distinguishing MF from eczema. In particular, one goal is to develop methods for semantic segmentation of such images that can automatically recognize spongiotic areas in the epidermis as well as regions in which lymphocytes are present. Building upon that, another goal is to develop techniques for quantifying the presence of spongiotic areas and lymphocytes in the epidermis. Ultimately, these techniques should become part of a system that can assist clinicians in distinguishing MF from eczema.
@@ -88,3 +86,10 @@ Execute
 ```
 wget -r -p --user user --password pw https://digipath.ise.inf.ethz.ch/mfec/
 ```
+
+## Citations
+The initial framework for our project was taken from https://github.com/MrGemy95/Tensorflow-Project-Template
+but heavily edited for tensorflow 2.0 compatibility. 
+
+The whole transfer learning Code was taken from https://github.com/qubvel/segmentation_models, 
+we added and changed a few things here and there but we are thankful for this amazing code. 

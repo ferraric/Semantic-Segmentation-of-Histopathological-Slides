@@ -1,14 +1,15 @@
 {
   "exp_name": "transfer_learning_unet",
-  "num_epochs": 10,
-  "num_iter_per_epoch": 10,
-  "test_every_x_iter": 5,
+  "backbone" : "vgg16",
+  "num_epochs": 3,
+  "validate_every_x_batches": 5,
   "shuffle_buffer_size" : 10,
+  "optimizer": "Adam",
   "learning_rate": 0.001,
-  "batch_size": 2,
+  "batch_size": 1,
   "use_comet_experiments" : false,
   "comet_api_key" : "NVyYXH1De9UgyELocupO1Lge9",
   "comet_project_name" : "semantic-segmentation-skin",
   "comet_workspace" : "jerry-crea",
-  "dataset_path" : "/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides/data_loader/example_data"
+  "train_dataset_path" : "/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides/data_loader/example_data"
 }
