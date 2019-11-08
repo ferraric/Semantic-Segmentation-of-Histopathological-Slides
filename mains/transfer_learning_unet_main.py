@@ -90,9 +90,8 @@ def main():
     model.compile(
         config.optimizer,
         loss=categorical_crossentropy,
-        metrics=[keras_metrics.categorical_accuracy, mean_iou_with_argmax],
+        metrics=[keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
     )
-    #        metrics=[iou_score, precision, recall, f2_score],
 
     model.fit(train_dataloader, epochs=config.num_epochs)
 

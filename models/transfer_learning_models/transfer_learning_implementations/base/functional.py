@@ -228,47 +228,6 @@ def recall(gt, pr, class_weights=1, class_indexes=None, smooth=SMOOTH, per_image
 
     return score
 
-def matthewscorrelation(gt, pr, class_weights=1, class_indexes=None, smooth=SMOOTH, per_image=False, threshold=None, **kwargs):
-    r"""Calculate matthewscorrelation between the ground truth (gt) and the prediction (pr).
-
-    .. math:: F_\beta(tp, tn, fp, fn) = \frac{tp \cdot tn - fp  \cdot fn} {\sqrt((tp + fp)(tp + fn)(tn + fp)(tn + fn))}
-
-    where:
-         - tp - true positives;
-         - fp - false positives;
-         - tn - true negatives;
-         - fp - false positives;
-
-    Args:
-        gt: ground truth 4D keras tensor (B, H, W, C) or (B, C, H, W)
-        pr: prediction 4D keras tensor (B, H, W, C) or (B, C, H, W)
-        class_weights: 1. or ``np.array`` of class weights (``len(weights) = num_classes``)
-        class_indexes: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
-        smooth: Float value to avoid division by zero.
-        per_image: If ``True``, metric is calculated as mean over images in batch (B),
-            else over whole batch.
-        threshold: Float value to round predictions (use ``>`` comparison), if ``None`` prediction will not be round.
-        name: Optional string, if ``None`` default ``precision`` name is used.
-
-    Returns:
-        float: recall score
-    """
-    backend = kwargs['backend']
-
-    gt, pr = gather_channels(gt, pr, indexes=class_indexes, **kwargs)
-    pr = round_if_needed(pr, threshold, **kwargs)
-    axes = get_reduce_axes(per_image, **kwargs)
-    # TODO make sure that this is calculated correctly
-    tp = backend.sum(gt * pr, axis=axes)
-    fp = backend.sum(pr, axis=axes) - tp
-    fn = backend.sum(gt, axis=axes) - tp
-
-    score = (tp + smooth) / (tp + fn + smooth)
-    score = average(score, per_image, class_weights, **kwargs)
-    raise NotImplementedError()
-    return score
-
-
 # ----------------------------------------------------------------
 #   Loss Functions
 # ----------------------------------------------------------------

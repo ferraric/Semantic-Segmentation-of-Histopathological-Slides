@@ -294,9 +294,9 @@ class MeanIoUWithArgmax(Metric):
 
 
 # aliases
-iou_score = IOUScore()
+iou_score = IOUScore(threshold=0.5)
 f1_score = FScore(beta=1)
-f2_score = FScore(beta=2)
-precision = Precision()
-recall = Recall()
+f2_score = FScore(beta=2, threshold=0.5)
+precision = Precision(threshold=0.5)
+recall = Recall(threshold=0.5)
 mean_iou_with_argmax = MeanIoUWithArgmax()
