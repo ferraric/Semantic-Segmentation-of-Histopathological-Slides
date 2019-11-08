@@ -5,7 +5,7 @@ SMOOTH = 1e-5
 
 
 class IOUScore(Metric):
-    r""" The `Jaccard index`_, also known as Intersection over Union and the Jaccard similarity coefficient
+    """ The `Jaccard index`_, also known as Intersection over Union and the Jaccard similarity coefficient
     (originally coined coefficient de communauté by Paul Jaccard), is a statistic used for comparing the
     similarity and diversity of sample sets. The Jaccard coefficient measures similarity between finite sample sets,
     and is defined as the size of the intersection divided by the size of the union of the sample sets:
@@ -61,7 +61,6 @@ class IOUScore(Metric):
             threshold=self.threshold,
             **self.submodules
         )
-
 
 class FScore(Metric):
     r"""The F-score (Dice coefficient) can be interpreted as a weighted average of the precision and recall,
@@ -254,66 +253,42 @@ class Recall(Metric):
             **self.submodules
         )
 
+class MeanIoUWithArgmax(Metric):
+    """The `Jaccard index`_, also known as Intersection over Union and the Jaccard similarity coefficient
+    (originally coined coefficient de communauté by Paul Jaccard), is a statistic used for comparing the
+    similarity and diversity of sample sets. The Jaccard coefficient measures similarity between finite sample sets,
+    and is defined as the size of the intersection divided by the size of the union of the sample sets:
 
-class MatthewsCorrelationCoefficient(Metric):
-    r"""Creates a criterion that measures the mathews Correlation Coefficient between the
-    ground truth (gt) and the prediction (pr). "It is a balanced measure that uses all the four classes of the confusion
-    matrix in ints computation." (citation: https://link.springer.com/content/pdf/10.1007%2Fs42452-019-0694-y.pdf)
-
-    .. math:: F_\beta(tp, tn, fp, fn) = \frac{tp \cdot tn - fp  \cdot fn} {\sqrt((tp + fp)(tp + fn)(tn + fp)(tn + fn))}
-
-    where:
-         - tp - true positives;
-         - fp - false positives
-         - tn - true negatives
-         - fn - false negatives;
+    .. math:: J(A, B) = \frac{A \cap B}{A \cup B}
 
     Args:
-        class_weights: 1. or ``np.array`` of class weights (``len(weights) = num_classes``).
-        class_indexes: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
-        smooth: Float value to avoid division by zero.
-        per_image: If ``True``, metric is calculated as mean over images in batch (B),
-            else over whole batch.
-        threshold: Float value to round predictions (use ``>`` comparison), if ``None`` prediction will not be round.
-        name: Optional string, if ``None`` default ``recall`` name is used.
+       name: name of the metric
 
     Returns:
-        A callable ``matthewscorrelation`` instance. Can be used in ``model.compile(...)`` function.
+       A callable ``iou_score`` instance. Can be used in ``model.compile(...)`` function.
+
+    .. _`Jaccard index`: https://en.wikipedia.org/wiki/Jaccard_index
 
     Example:
 
     .. code:: python
 
-        metric = MatthewsCorrelation()
+        metric = MeanIouWithArgmax()
         model.compile('SGD', loss=loss, metrics=[metric])
     """
 
     def __init__(
             self,
-            class_weights=None,
-            class_indexes=None,
-            threshold=None,
-            per_image=False,
-            smooth=SMOOTH,
             name=None,
     ):
-        name = name or 'matthewscorrelation'
+        name = name or 'mean_iou_with_argmax'
         super().__init__(name=name)
-        self.class_weights = class_weights if class_weights is not None else 1
-        self.class_indexes = class_indexes
-        self.threshold = threshold
-        self.per_image = per_image
-        self.smooth = smooth
+
 
     def __call__(self, gt, pr):
-        return F.matthewscorrelation(
+        return F.mean_iou_with_argmax(
             gt,
             pr,
-            class_weights=self.class_weights,
-            class_indexes=self.class_indexes,
-            smooth=self.smooth,
-            per_image=self.per_image,
-            threshold=self.threshold,
             **self.submodules
         )
 
@@ -324,4 +299,4 @@ f1_score = FScore(beta=1)
 f2_score = FScore(beta=2)
 precision = Precision()
 recall = Recall()
-matthewscorrelation = MatthewsCorrelationCoefficient()
+mean_iou_with_argmax = MeanIoUWithArgmax()

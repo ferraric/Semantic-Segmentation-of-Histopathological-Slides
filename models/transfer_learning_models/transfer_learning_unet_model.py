@@ -9,4 +9,4 @@ class TransferLearningUnetModel():
         self.build_model()
 
     def build_model(self):
-        self.model = sm.Unet(backbone_name=self.config.backbone, classes=3)
+        self.model = sm.Unet(backbone_name=self.config.backbone, classes=self.config.number_of_classes)

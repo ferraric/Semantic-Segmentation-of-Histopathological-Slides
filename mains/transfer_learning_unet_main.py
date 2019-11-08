@@ -21,6 +21,7 @@ from models.transfer_learning_models.transfer_learning_unet_model import (
 )
 from models.transfer_learning_models.transfer_learning_implementations.losses import *
 from models.transfer_learning_models.transfer_learning_implementations.metrics import *
+import tensorflow.keras.metrics as keras_metrics
 import models.transfer_learning_models.transfer_learning_implementations as sm
 
 from utils.config import process_config
@@ -43,7 +44,6 @@ def main():
         workspace=config.comet_workspace,
         disabled=not config.use_comet_experiments,
     )
-
     if config.use_comet_experiments:
         experiment_id = experiment.connection.experiment_id
     else:
@@ -76,8 +76,8 @@ def main():
     )
 
     # visualize data
-    image, annotation = train_data[0]
-    visualize(image=image, annotation=annotation)
+    #mage, annotation = train_data[0]
+    #visualize(image=image, annotation=annotation)
 
     # print the model summary and save it into the output folder
     model.summary()
@@ -90,8 +90,10 @@ def main():
     model.compile(
         config.optimizer,
         loss=categorical_crossentropy,
-        metrics=[iou_score, precision, recall, f2_score],
+        metrics=[keras_metrics.categorical_accuracy, mean_iou_with_argmax],
     )
+    #        metrics=[iou_score, precision, recall, f2_score],
+
     model.fit(train_dataloader, epochs=config.num_epochs)
 
 
