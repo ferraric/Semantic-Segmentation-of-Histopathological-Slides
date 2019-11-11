@@ -7,3 +7,4 @@ __pycache__
 .idea/usage.statistics.xml
 .idea/tasks.xml
 experiments/*
+.vs
