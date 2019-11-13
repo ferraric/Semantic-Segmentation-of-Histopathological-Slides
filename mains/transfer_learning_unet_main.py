@@ -7,8 +7,12 @@ import os
 import random
 import sys
 import numpy as np
+import os,sys,inspect
 
-sys.path.append("../")
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir) 
+
 
 from data_loader.transfer_learning_data_generator import (
     TransferLearningData,
