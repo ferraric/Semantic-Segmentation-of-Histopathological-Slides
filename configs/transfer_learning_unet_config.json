@@ -12,5 +12,6 @@
   "comet_api_key" : "NVyYXH1De9UgyELocupO1Lge9",
   "comet_project_name" : "semantic-segmentation-skin",
   "comet_workspace" : "jerry-crea",
-  "train_dataset_path" : "/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides/data_loader/example_data"
+  "train_dataset_path" : "/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides/data_loader/example_data",
+  "validation_dataset_path" : "/Users/jeremyscheurer/Code/semantic-segmentation-of-histopathological-slides/data_loader/example_data"
 }

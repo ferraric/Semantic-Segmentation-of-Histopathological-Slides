@@ -71,13 +71,21 @@ def main():
         config.train_dataset_path,
         preprocessing=do_preprocessing(backbone_preprocessing),
     )
+    validation_data = TransferLearningData(
+        config.validation_dataset_path,
+        preprocessing=do_preprocessing(backbone_preprocessing),
+    )
+
     train_dataloader = TransferLearningGenerator(
         train_data, batch_size=config.batch_size, shuffle=True
     )
+    validation_dataloader = TransferLearningGenerator(
+        validation_data, batch_size=1, shuffle=False
+    )
 
     # visualize data
-    #mage, annotation = train_data[0]
-    #visualize(image=image, annotation=annotation)
+    image, annotation = train_data[0]
+    visualize(image=image, annotation=annotation)
 
     # print the model summary and save it into the output folder
     model.summary()
@@ -93,7 +101,7 @@ def main():
         metrics=[keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
     )
 
-    model.fit(train_dataloader, epochs=config.num_epochs)
+    model.fit(train_dataloader, epochs=config.num_epochs, validation_data=validation_dataloader)
 
 
 if __name__ == "__main__":
