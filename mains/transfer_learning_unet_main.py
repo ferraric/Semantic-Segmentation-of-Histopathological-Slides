@@ -83,10 +83,6 @@ def main():
         validation_data, batch_size=1, shuffle=False
     )
 
-    # visualize data
-    image, annotation = train_data[0]
-    visualize(image=image, annotation=annotation)
-
     # print the model summary and save it into the output folder
     model.summary()
     model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
