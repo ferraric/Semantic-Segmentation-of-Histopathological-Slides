@@ -2,7 +2,7 @@
 import tensorflow.keras
 import numpy as np
 import matplotlib.pyplot as plt
-import pathlib
+import os
 from PIL import Image
 import albumentations as A
 import keras
@@ -12,10 +12,16 @@ class TransferLearningData:
     def __init__(self, dataset_path, augmentation=None, preprocessing=None):
 
         # create list of image and annotation paths
-        data_dir = pathlib.Path(dataset_path)
-        self.image_paths = list(data_dir.glob("image*.png"))
-        self.annotation_paths = list(data_dir.glob("annotation*.png"))
-        self.image_count = len(self.image_paths)
+        all_files = os.listdir(dataset_path)
+        self.slide_paths = []
+        self.annotation_paths = []
+        for file in all_files:
+            if("slide" in file):
+                self.slide_paths.append(os.path.join(dataset_path, file))
+            elif("annotation" in file):
+                self.annotation_paths.append(os.path.join(dataset_path, file))
+                
+        self.image_count = len(self.slide_paths)
         annotation_count = len(self.annotation_paths)
         assert self.image_count == annotation_count, (
             "The image count is {} and the annotation count is {}, but they should be"
@@ -28,7 +34,7 @@ class TransferLearningData:
 
     def __getitem__(self, i):
         # read data
-        image = np.array(Image.open(self.image_paths[i]))[..., :-1]
+        image = np.array(Image.open(self.slide_paths[i]))[..., :-1]
         annotation = np.array(Image.open(self.annotation_paths[i]))
         annotation = keras.utils.to_categorical(annotation, 3)
 
