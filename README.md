@@ -100,8 +100,7 @@ pip3 install -r requirements.txt
 
 How to run a model: 
 ```
-bsub python3 mains/transfer_learning_unet_main.py -c configs/transfer_learning_unet_config.json -R "rusage[ngpus_excl_p=1]" -W 10:00
-```
+bsub -R "rusage[ngpus_excl_p=1]" -W 10:00 python3 mains/transfer_learning_unet_main.py -c configs/transfer_learning_unet_config.json```
 
 If you have trouble because the root path is not added to the PYTHONPATH, do the following: 
 ```
