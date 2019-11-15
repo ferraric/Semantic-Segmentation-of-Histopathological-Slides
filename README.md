@@ -1,4 +1,3 @@
-trainers/example_segmentation_trainer.py
 # Semantic Segmentation of Histopathological Slides
 
 ## Project Description
@@ -86,6 +85,24 @@ Execute
 ```
 wget -r -p --user user --password pw https://digipath.ise.inf.ethz.ch/mfec/
 ```
+
+#### How to use the ETH Leonhard Cluster 
+Some help here: 
+- https://scicomp.ethz.ch/wiki/Getting_started_with_clusters
+- https://scicomp.ethz.ch/wiki/Getting_started_with_clusters
+- https://scicomp.ethz.ch/wiki/FAQ
+
+Setup: 
+```module load python_gpu/3.6.1
+module load eth_proxy
+pip3 install -r requirements.txt
+```
+
+How to run a model: 
+```
+bsub python3 mains/transfer_learning_unet_main.py -c configs/transfer_learning_unet_config.json -R "rusage[ngpus_excl_p=1]" -W 10:00
+```
+
 
 ## Citations
 The initial framework for our project was taken from https://github.com/MrGemy95/Tensorflow-Project-Template
