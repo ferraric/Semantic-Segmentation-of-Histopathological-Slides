@@ -97,6 +97,12 @@ Setup:
 module load eth_proxy
 pip3 install -r requirements.txt --user
 ```
+Note: Don't update pip to version 19.3 as it is somehow broken. But you need at least pip version 19.0 to have TF version 2.0. 
+So you might have to do the following: 
+```
+pip install -U --user pip==19.0
+pip install --user tensorflow-gpu==2.0
+```
 
 How to run a model: 
 ```
