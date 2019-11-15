@@ -103,6 +103,13 @@ How to run a model:
 bsub python3 mains/transfer_learning_unet_main.py -c configs/transfer_learning_unet_config.json -R "rusage[ngpus_excl_p=1]" -W 10:00
 ```
 
+If you have trouble because the root path is not added to the PYTHONPATH, do the following: 
+```
+import os,sys,inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+```
 
 ## Citations
 The initial framework for our project was taken from https://github.com/MrGemy95/Tensorflow-Project-Template
