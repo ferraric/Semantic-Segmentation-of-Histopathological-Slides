@@ -95,7 +95,7 @@ Some help here:
 Setup: 
 ```module load python_gpu/3.6.1
 module load eth_proxy
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --user
 ```
 
 How to run a model: 
