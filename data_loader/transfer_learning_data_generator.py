@@ -16,7 +16,7 @@ class TransferLearningData:
         self.slide_paths = []
         self.annotation_paths = []
         for file in all_files:
-            if("slide" in file):
+            if("image" in file):
                 self.slide_paths.append(os.path.join(dataset_path, file))
             elif("annotation" in file):
                 self.annotation_paths.append(os.path.join(dataset_path, file))
