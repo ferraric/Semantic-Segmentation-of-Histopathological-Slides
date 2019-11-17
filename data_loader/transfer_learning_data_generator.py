@@ -36,10 +36,10 @@ class TransferLearningData:
         self.preprocessing = preprocessing
 
     def __getitem__(self, i):
-        image_path = self.slide_paths[i]
-        annotation_path = self.annotation_paths[i]
-        assert image_path.replace("slide", "") == annotation_path.replace("annotation", ""), "Path names of slide {} and annotation {}" \
-                                                                                         "do not match".format(image_path, annotation_path)
+        image_name = os.path.split(self.slide_paths[i])[1]
+        annotation_name = os.path.split(self.annotation_paths[i])[1]
+        assert image_name.replace("slide", "") == annotation_name.replace("annotation", ""), "Path names of slide {} and annotation {}" \
+                                                                                         "do not match".format(image_name, annotation_name)
 
         # read data
         image = np.array(Image.open(self.slide_paths[i]))[..., :-1]
