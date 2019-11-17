@@ -3,11 +3,15 @@ import tensorflow as tf
 import json
 import os
 import random
+import json
 
+
+from pathlib import Path
 from data_loader.general_data_loader import GeneralDataLoader
 from models.unet import UNetModel
 from utils.config import process_config
 from utils.dirs import create_dirs
+from tensorflow.keras.metrics import MeanIoU, Precision, Recall
 
 
 def main():
@@ -51,27 +55,44 @@ def main():
     ) as json_file:
         json.dump(config, json_file)
 
-    model = UNetModel(config)
-
-
     #Get Data
     data = GeneralDataLoader(config, experiment)
 
+
+
+    model = UNetModel(config)
     model.compile(
         optimizer=config.optimizer,
         loss='categorical_crossentropy',
+        metrics=[MeanIoU(3)],
+        validation_data=data.test_data
     )
 
-    model.fit(data.train_data, epochs=config.num_epochs, steps_per_epoch=config.batch_size)
+    checkpoint_path = config.model_save_path + "cp.ckpt"
 
-    model.summary()
-    model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
-    with open(model_architecture_path, "w") as fh:
-        # Pass the file handle in as a lambda function to make it callable
-        model.summary(print_fn=lambda x: fh.write(x + "\n"))
-    experiment.log_asset(model_architecture_path)
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1)
+
+    if config.model_save_epoch > 0:
+        model.load_weights(checkpoint_path)
+
+    if config.model_save_epoch < config.num_epochs:
+        model.fit(data.train_data, 
+                  epochs= config.num_epochs - config.model_save_epoch, 
+                  verbose=1,
+                  callbacks=[cp_callback, UpdateConfig()],
+                  validation_data = data.test_data)
+
+    model.evaluate(data.test_data)
 
 
+
+class UpdateConfig(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        config = process_config("configs/unet.json")
+        config.model_save_epoch += 1
+        json.dump(config, open("configs/unet.json", "w"), indent=2)
 
 
 if __name__ == "__main__":

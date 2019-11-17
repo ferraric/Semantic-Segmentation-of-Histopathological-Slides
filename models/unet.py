@@ -58,7 +58,6 @@ class UNetModel(Model):
         self.conv93 = Conv2D(3, (1,1), activation='softmax', padding='same')
 
     def call(self, x):
-        x = tf.reshape(x, [1, 512, 512, 1])
         x = self.inputlayer(x)
         x = self.conv11(x)
         x = self.conv12(x)
