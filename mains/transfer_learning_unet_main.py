@@ -26,6 +26,7 @@ from models.transfer_learning_models.transfer_learning_unet_model import (
 from models.transfer_learning_models.transfer_learning_implementations.losses import *
 from models.transfer_learning_models.transfer_learning_implementations.metrics import *
 import tensorflow.keras.metrics as keras_metrics
+from keras import losses
 import models.transfer_learning_models.transfer_learning_implementations as sm
 
 from utils.config import process_config
@@ -94,13 +95,21 @@ def main():
         # Pass the file handle in as a lambda function to make it callable
         model.summary(print_fn=lambda x: fh.write(x + "\n"))
     experiment.log_asset(model_architecture_path)
+    experiment.log_asset(args.config)
+
+
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=config.learning_rate,
+        decay_steps=config.decay_steps,
+        decay_rate=config.decay_rate,
+        staircase=config.lr_decay_staircase)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
     model.compile(
-        config.optimizer,
-        loss=categorical_crossentropy,
+        optimizer=optimizer,
+        loss=losses.categorical_crossentropy,
         metrics=[keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
     )
-
     model.fit(train_dataloader, epochs=config.num_epochs, validation_data=validation_dataloader)
 
 
