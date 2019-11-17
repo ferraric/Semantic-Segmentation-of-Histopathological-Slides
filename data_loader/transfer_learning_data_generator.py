@@ -20,7 +20,10 @@ class TransferLearningData:
                 self.slide_paths.append(os.path.join(dataset_path, file))
             elif("annotation" in file):
                 self.annotation_paths.append(os.path.join(dataset_path, file))
-                
+
+        self.slide_paths.sort()
+        self.annotation_paths.sort()
+
         self.image_count = len(self.slide_paths)
         annotation_count = len(self.annotation_paths)
         assert self.image_count == annotation_count, (
@@ -33,6 +36,11 @@ class TransferLearningData:
         self.preprocessing = preprocessing
 
     def __getitem__(self, i):
+        image_path = self.slide_paths[i]
+        annotation_path = self.annotation_paths[i]
+        assert image_path.replace("slide", "") == annotation_path.replace("annotation", ""), "Path names of slide {} and annotation {}" \
+                                                                                         "do not match".format(image_path, annotation_path)
+
         # read data
         image = np.array(Image.open(self.slide_paths[i]))[..., :-1]
         annotation = np.array(Image.open(self.annotation_paths[i]))
