@@ -1,32 +1,27 @@
 from comet_ml import Experiment
 import tensorflow as tf
 
-SM_FRAMEWORK = tf.keras
 import json
-import os
 import random
-import sys
-import numpy as np
 import os,sys,inspect
+import models.transfer_learning_models.transfer_learning_implementations as sm
+sm.set_framework('tf.keras')
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir) 
+sys.path.insert(0,parentdir)
 
 
 from data_loader.transfer_learning_data_generator import (
-    TransferLearningData,
-    TransferLearningGenerator,
-    do_preprocessing,
-    visualize,
+    TransferLearningDataLoader
 )
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
 from models.transfer_learning_models.transfer_learning_implementations.losses import *
 from models.transfer_learning_models.transfer_learning_implementations.metrics import *
-import tensorflow.keras.metrics as keras_metrics
-from keras import losses
+import tensorflow.keras.metrics as tf_keras_metrics
+import tensorflow.keras.losses as tf_keras_losses
 import models.transfer_learning_models.transfer_learning_implementations as sm
 
 from utils.config import process_config
@@ -72,23 +67,30 @@ def main():
     transfer_learning_unet = TransferLearningUnetModel(config)
     model = transfer_learning_unet.model
     backbone_preprocessing = sm.get_preprocessing(config.backbone)
-    train_data = TransferLearningData(
-        config.train_dataset_path,
-        preprocessing=do_preprocessing(backbone_preprocessing),
+    train_dataloader = TransferLearningDataLoader(
+        config,
+        validation=False,
+        preprocessing=backbone_preprocessing
     )
-    validation_data = TransferLearningData(
-        config.validation_dataset_path,
-        preprocessing=do_preprocessing(backbone_preprocessing),
-    )
-
-    train_dataloader = TransferLearningGenerator(
-        train_data, batch_size=config.batch_size, shuffle=True
-    )
-    validation_dataloader = TransferLearningGenerator(
-        validation_data, batch_size=1, shuffle=False
+    validation_dataloader = TransferLearningDataLoader(
+        config,
+        validation=True,
+        preprocessing=backbone_preprocessing
     )
 
-    # print the model summary and save it into the output folder
+    # validation_data = TransferLearningData(
+    #     config.validation_dataset_path,
+    #     preprocessing=backbone_preprocessing,
+    # )
+    #
+    # train_dataloader = TransferLearningGenerator(
+    #     train_data, batch_size=config.batch_size, shuffle=True
+    # )
+    # validation_dataloader = TransferLearningGenerator(
+    #     validation_data, batch_size=1, shuffle=False
+    # )
+
+    #print the model summary and save it into the output folder
     model.summary()
     model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
     with open(model_architecture_path, "w") as fh:
@@ -105,12 +107,18 @@ def main():
         staircase=config.lr_decay_staircase)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
+
+
     model.compile(
         optimizer=optimizer,
-        loss=losses.categorical_crossentropy,
-        metrics=[keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
+        loss=tf_keras_losses.categorical_crossentropy,
+        metrics=[tf_keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
     )
-    model.fit(train_dataloader, epochs=config.num_epochs, validation_data=validation_dataloader)
+
+
+    model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
+              validation_steps=len(validation_dataloader),
+              use_multiprocessing=False)
 
 
 if __name__ == "__main__":

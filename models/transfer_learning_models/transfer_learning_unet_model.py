@@ -1,6 +1,5 @@
-import tensorflow as tf
-SM_FRAMEWORK= tf.keras
 import models.transfer_learning_models.transfer_learning_implementations as sm
+import tensorflow as tf
 
 
 class TransferLearningUnetModel():
