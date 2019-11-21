@@ -49,7 +49,10 @@ class TransferLearningDataLoader:
         dataset = tf.data.Dataset.from_tensor_slices((self.slide_paths, self.annotation_paths))
         dataset = dataset.map(self.parse_image_and_label, num_parallel_calls=AUTOTUNE)
 
-        self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).batch(self.config.batch_size, drop_remainder=True)
+        if(validation):
+            self.dataset = dataset.repeat().batch(self.config.batch_size, drop_remainder=True)
+        else:
+            self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat().batch(self.config.batch_size, drop_remainder=True)
 
     def __len__(self):
         return math.ceil(self.image_count / self.config.batch_size)

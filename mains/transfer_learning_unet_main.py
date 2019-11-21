@@ -115,7 +115,6 @@ def main():
         metrics=[tf_keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
     )
 
-
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
               use_multiprocessing=False)
