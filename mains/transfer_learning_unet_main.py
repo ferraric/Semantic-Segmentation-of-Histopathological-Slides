@@ -4,14 +4,14 @@ import tensorflow as tf
 import json
 import random
 import os,sys,inspect
-import models.transfer_learning_models.transfer_learning_implementations as sm
-sm.set_framework('tf.keras')
+
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
-
+import models.transfer_learning_models.transfer_learning_implementations as sm
+sm.set_framework('tf.keras')
 from data_loader.transfer_learning_data_generator import (
     TransferLearningDataLoader
 )
