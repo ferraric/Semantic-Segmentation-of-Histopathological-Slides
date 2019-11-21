@@ -1,103 +1,74 @@
-# License: Most of the Code in here has been taken from the multiclass example of https://github.com/qubvel/segmentation_models
-import tensorflow.keras
-import numpy as np
-import matplotlib.pyplot as plt
-import pathlib
-from PIL import Image
-import albumentations as A
-import keras
+import tensorflow as tf
+import os
+import math
 
-# classes for data loading and preprocessing
-class TransferLearningData:
-    def __init__(self, dataset_path, augmentation=None, preprocessing=None):
+AUTOTUNE = tf.data.experimental.AUTOTUNE
+
+
+class TransferLearningDataLoader:
+    def __init__(self, config, validation=False, preprocessing=None, augmentation=None):
+        self.augmentation = augmentation
+        self.preprocessing = preprocessing
+        self.config = config
+        if(validation):
+            dataset_path = config.validation_dataset_path
+        else:
+            dataset_path = config.train_dataset_path
 
         # create list of image and annotation paths
-        data_dir = pathlib.Path(dataset_path)
-        self.image_paths = list(data_dir.glob("image*.png"))
-        self.annotation_paths = list(data_dir.glob("annotation*.png"))
-        self.image_count = len(self.image_paths)
+        all_files = os.listdir(dataset_path)
+        self.slide_paths = []
+        self.annotation_paths = []
+        for file in all_files:
+            if "slide" in file:
+                self.slide_paths.append(os.path.join(dataset_path, file))
+            elif "annotation" in file:
+                self.annotation_paths.append(os.path.join(dataset_path, file))
+
+        self.slide_paths.sort()
+        self.annotation_paths.sort()
+
+        self.image_count = len(self.slide_paths)
         annotation_count = len(self.annotation_paths)
         assert self.image_count == annotation_count, (
             "The image count is {} and the annotation count is {}, but they should be"
             "equal".format(self.image_count, annotation_count)
         )
+        for i, slide_path in enumerate(self.slide_paths):
+            slide_name = os.path.split(slide_path)[1]
+            annotation_name = os.path.split(self.annotation_paths[i])[1]
+            assert slide_name.replace("slide", "") == annotation_name.replace(
+                "annotation", ""
+            ), (
+                "Path names of slide {} and annotation {}"
+                "do not match".format(slide_name, annotation_name)
+            )
+
         print("We found {} images and annotations".format(self.image_count))
 
-        self.augmentation = augmentation
-        self.preprocessing = preprocessing
+        dataset = tf.data.Dataset.from_tensor_slices((self.slide_paths, self.annotation_paths))
+        dataset = dataset.map(self.parse_image_and_label, num_parallel_calls=AUTOTUNE)
 
-    def __getitem__(self, i):
-        # read data
-        image = np.array(Image.open(self.image_paths[i]))[..., :-1]
-        annotation = np.array(Image.open(self.annotation_paths[i]))
-        annotation = keras.utils.to_categorical(annotation, 3)
+        if(validation):
+            self.dataset = dataset.repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+        else:
+            self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(self.config.batch_size, drop_remainder=True)
 
-        # apply augmentations
+    def __len__(self):
+        return math.ceil(self.image_count / self.config.batch_size)
+
+    def parse_image_and_label(self, image_path, label_path):
+        image_path_tensor = tf.io.read_file(image_path)
+        label_path_tensor = tf.io.read_file(label_path)
+
+        img = tf.image.decode_png(image_path_tensor, channels=3)
+        label = tf.image.decode_png(label_path_tensor, channels=0)
+        label = tf.dtypes.cast(tf.math.divide(label, 255), tf.uint8)
+
         if self.augmentation:
-            sample = self.augmentation(image=image, annotation=annotation)
-            image, annotation = sample["image"], sample["annotation"]
+            img = self.augmentation(img)
+            label = self.augmentation(label)
 
-        # apply preprocessing
         if self.preprocessing:
-            sample = self.preprocessing(image=image, annotation=annotation)
-            image, annotation = sample["image"], sample["annotation"]
-
-        return image, annotation
-
-    def __len__(self):
-        return self.image_count
-
-
-class TransferLearningGenerator(tensorflow.keras.utils.Sequence):
-    """Load data from TransferLearningData and form batches
-       Args:
-           dataset: instance of TransferLearningData class for image loading, augmentation and preprocessing.
-           batch_size: Integer number of images in batch.
-           shuffle: Boolean, if `True` shuffle image indexes each epoch.
-    """
-
-    def __init__(self, dataset, batch_size=1, shuffle=False):
-        self.dataset = dataset
-        self.batch_size = batch_size
-        self.shuffle = shuffle
-        self.indexes = np.arange(len(dataset))
-        self.on_epoch_end()
-
-    def __getitem__(self, i):
-        # collect batch data
-        start = i * self.batch_size
-        stop = (i + 1) * self.batch_size
-        data = []
-        for j in range(start, stop):
-            data.append(self.dataset[j])
-
-        # transpose list of lists
-        batch = [np.stack(samples, axis=0) for samples in zip(*data)]
-        return batch
-
-    def __len__(self):
-        """Denotes the number of batches per epoch"""
-        return len(self.indexes) // self.batch_size
-
-    def on_epoch_end(self):
-        """Callback function to shuffle indexes each epoch"""
-        if self.shuffle:
-            self.indexes = np.random.permutation(self.indexes)
-
-
-def do_preprocessing(preprocessing_fn):
-    _transform = [A.Lambda(image=preprocessing_fn)]
-    return A.Compose(_transform)
-
-
-def visualize(**images):
-    """PLot images in one row."""
-    n = len(images)
-    plt.figure(figsize=(16, 5))
-    for i, (name, image) in enumerate(images.items()):
-        plt.subplot(1, n, i + 1)
-        plt.xticks([])
-        plt.yticks([])
-        plt.title(" ".join(name.split("_")).title())
-        plt.imshow(image)
-    plt.show()
+            img = self.preprocessing(img)
+        return img, label
