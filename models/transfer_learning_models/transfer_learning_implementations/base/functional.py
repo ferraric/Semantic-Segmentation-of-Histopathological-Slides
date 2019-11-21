@@ -1,3 +1,4 @@
+import tensorflow as tf
 SMOOTH = 1e-5
 
 # ----------------------------------------------------------------
@@ -83,7 +84,6 @@ def iou_score(gt, pr, class_weights=1., class_indexes=None, smooth=SMOOTH, per_i
     """
 
     backend = kwargs['backend']
-
     gt, pr = gather_channels(gt, pr, indexes=class_indexes, **kwargs)
     pr = round_if_needed(pr, threshold, **kwargs)
     axes = get_reduce_axes(per_image, **kwargs)
@@ -228,47 +228,6 @@ def recall(gt, pr, class_weights=1, class_indexes=None, smooth=SMOOTH, per_image
 
     return score
 
-def matthewscorrelation(gt, pr, class_weights=1, class_indexes=None, smooth=SMOOTH, per_image=False, threshold=None, **kwargs):
-    r"""Calculate matthewscorrelation between the ground truth (gt) and the prediction (pr).
-
-    .. math:: F_\beta(tp, tn, fp, fn) = \frac{tp \cdot tn - fp  \cdot fn} {\sqrt((tp + fp)(tp + fn)(tn + fp)(tn + fn))}
-
-    where:
-         - tp - true positives;
-         - fp - false positives;
-         - tn - true negatives;
-         - fp - false positives;
-
-    Args:
-        gt: ground truth 4D keras tensor (B, H, W, C) or (B, C, H, W)
-        pr: prediction 4D keras tensor (B, H, W, C) or (B, C, H, W)
-        class_weights: 1. or ``np.array`` of class weights (``len(weights) = num_classes``)
-        class_indexes: Optional integer or list of integers, classes to consider, if ``None`` all classes are used.
-        smooth: Float value to avoid division by zero.
-        per_image: If ``True``, metric is calculated as mean over images in batch (B),
-            else over whole batch.
-        threshold: Float value to round predictions (use ``>`` comparison), if ``None`` prediction will not be round.
-        name: Optional string, if ``None`` default ``precision`` name is used.
-
-    Returns:
-        float: recall score
-    """
-    backend = kwargs['backend']
-
-    gt, pr = gather_channels(gt, pr, indexes=class_indexes, **kwargs)
-    pr = round_if_needed(pr, threshold, **kwargs)
-    axes = get_reduce_axes(per_image, **kwargs)
-    # TODO make sure that this is calculated correctly
-    tp = backend.sum(gt * pr, axis=axes)
-    fp = backend.sum(pr, axis=axes) - tp
-    fn = backend.sum(gt, axis=axes) - tp
-
-    score = (tp + smooth) / (tp + fn + smooth)
-    score = average(score, per_image, class_weights, **kwargs)
-    raise NotImplementedError()
-    return score
-
-
 # ----------------------------------------------------------------
 #   Loss Functions
 # ----------------------------------------------------------------
@@ -345,3 +304,93 @@ def binary_focal_loss(gt, pr, gamma=2.0, alpha=0.25, **kwargs):
     loss_0 = - (1 - gt) * (alpha * backend.pow((pr), gamma) * backend.log(1 - pr))
     loss = backend.mean(loss_0 + loss_1)
     return loss
+
+def mean_iou_with_argmax(y_true, y_pred, **kwargs):
+    """
+    First calculate the argmax of the prediction.  Then Compute mean Intersection over Union via Keras.
+    IoU(A,B) = |A & B| / (| A U B|)
+    Calls metrics_k(y_true, y_pred, metric_name='iou'), see there for allowed kwargs.
+    """
+    backend = kwargs['backend']
+    return calculate_mean_iou_or_dice(y_true, y_pred, metric_name='iou', backend=backend)
+
+
+def calculate_mean_iou_or_dice(y_true, y_pred, metric_name, metric_type='standard', drop_last=False, backend=None):
+    """
+    Compute mean metrics of two segmentation masks, via Keras.
+
+    IoU(A,B) = |A & B| / (| A U B|)
+    Dice(A,B) = 2*|A & B| / (|A| + |B|)
+
+    Args:
+        y_true: true masks, one-hot encoded.
+        y_pred: predicted masks, either softmax outputs, or one-hot encoded.
+        metric_name: metric to be computed, either 'iou' or 'dice'.
+        metric_type: one of 'standard' (default), 'soft', 'naive'.
+          In the standard version, y_pred is one-hot encoded and the mean
+          is taken only over classes that are present (in y_true or y_pred).
+          The 'soft' version of the metrics are computed without one-hot
+          encoding y_pred.
+          The 'naive' version return mean metrics where absent classes contribute
+          to the class mean as 1.0 (instead of being dropped from the mean).
+        drop_last = True: boolean flag to drop last class (usually reserved
+          for background class in semantic segmentation)
+
+    Returns:
+        IoU/Dice of y_true and y_pred, as a float
+          in which case it returns the per-class metric, averaged over the batch.
+
+    Inputs are B*W*H*N tensors, with
+        B = batch size,
+        W = width,
+        H = height,
+        N = number of classes
+    """
+
+    flag_soft = (metric_type == 'soft')
+    flag_naive_mean = (metric_type == 'naive')
+
+    # always assume one or more classes
+    num_classes = backend.shape(y_true)[-1]
+
+    if not flag_soft:
+        # get one-hot encoded masks from y_pred (true masks should already be one-hot)
+        y_pred = backend.one_hot(backend.argmax(y_pred), num_classes)
+        y_true = backend.one_hot(backend.argmax(y_true), num_classes)
+
+    # if already one-hot, could have skipped above command
+    # keras uses float32 instead of float64, would give error down (but numpy arrays or keras.to_categorical gives float64)
+    y_true = backend.cast(y_true, 'float32')
+    y_pred = backend.cast(y_pred, 'float32')
+
+    # intersection and union shapes are batch_size * n_classes (values = area in pixels)
+    axes = (1, 2)  # W,H axes of each image
+    intersection = backend.sum(backend.abs(y_true * y_pred), axis=axes)
+    mask_sum = backend.sum(backend.abs(y_true), axis=axes) + backend.sum(backend.abs(y_pred), axis=axes)
+    union = mask_sum - intersection  # or, np.logical_or(y_pred, y_true) for one-hot
+
+    smooth = .001
+    iou = (intersection + smooth) / (union + smooth)
+    dice = 2 * (intersection + smooth) / (mask_sum + smooth)
+
+    metric = {'iou': iou, 'dice': dice}[metric_name]
+
+    # define mask to be 0 when no pixels are present in either y_true or y_pred, 1 otherwise
+    mask = backend.cast(backend.not_equal(union, 0), 'float32')
+
+    if drop_last:
+        metric = metric[:, :-1]
+        mask = mask[:, :-1]
+
+
+    # return mean metrics: remaining axes are (batch, classes)
+    if flag_naive_mean:
+        return backend.mean(metric)
+
+    # take mean only over non-absent classes
+    class_count = backend.sum(mask, axis=0)
+    non_zero = tf.greater(class_count, 0)
+    non_zero_sum = tf.boolean_mask(backend.sum(metric * mask, axis=0), non_zero)
+    non_zero_count = tf.boolean_mask(class_count, non_zero)
+
+    return backend.mean(non_zero_sum / non_zero_count)
