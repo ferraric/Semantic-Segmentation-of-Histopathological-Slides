@@ -11,7 +11,7 @@ from data_loader.general_data_loader import GeneralDataLoader
 from models.unet import UNetModel
 from utils.config import process_config
 from utils.dirs import create_dirs
-from tensorflow.keras.metrics import MeanIoU, Precision, Recall
+from tensorflow.keras.metrics import MeanIoU
 
 
 def main():
@@ -32,7 +32,6 @@ def main():
         api_key=config.comet_api_key,
         project_name=config.comet_project_name,
         workspace=config.comet_workspace,
-        disabled=not config.use_comet_experiments,
     )
 
     # create the experiments dirs and add the config file
@@ -78,13 +77,21 @@ def main():
         model.load_weights(checkpoint_path)
 
     if config.model_save_epoch < config.num_epochs:
-        model.fit(data.train_data, 
-                  epochs= config.num_epochs - config.model_save_epoch, 
-                  verbose=1,
-                  callbacks=[cp_callback, UpdateConfig()],
-                  validation_data = data.test_data)
+        with experiment.train():
+            model.fit(data.train_data, 
+                      epochs= config.num_epochs - config.model_save_epoch, 
+                      verbose=1,
+                      callbacks=[cp_callback, UpdateConfig()],
+                      validation_data = data.test_data)
 
-    model.evaluate(data.test_data)
+    with experiment.test():
+        loss, iou = model.evaluate(data.test_data)
+
+        metrics = {
+            'loss':loss,
+            'MeanIoU': iou,
+        }
+        experiment.log_metrics(metrics)
 
 
 

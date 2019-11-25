@@ -7,12 +7,12 @@
   "validate_every_x_batches": 5,
   "batch_size": 1,
   "use_comet_experiments": false,
-  "comet_api_key": "NVyYXH1De9UgyELocupO1Lge9",
-  "comet_project_name": "semantic-segmentation-skin",
-  "comet_workspace": "jerry-crea",
+  "comet_api_key": "AH6r0fhmbRpUcuvKvSNLqJvME",
+  "comet_project_name": "u-net",
+  "comet_workspace": "luistodobom",
   "dataset_path": "C:/Users/guitb/Documents/LinuxWorkspace/data/segmentation/patches",
   "model_save_path": "saved_models/unet/",
-  "model_save_epoch": 1,
+  "model_save_epoch": 0,
   "patch_size": 512,
   "patch_channels": 1
 }
