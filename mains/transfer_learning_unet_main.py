@@ -13,7 +13,7 @@ sys.path.insert(0,parentdir)
 import models.transfer_learning_models.transfer_learning_implementations as sm
 sm.set_framework('tf.keras')
 from data_loader.transfer_learning_data_generator import (
-    TransferLearningDataLoader
+    TransferLearningDataLoader, NorwayTransferLearningDataLoader
 )
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
@@ -65,16 +65,28 @@ def main():
     transfer_learning_unet = TransferLearningUnetModel(config)
     model = transfer_learning_unet.model
     backbone_preprocessing = sm.get_preprocessing(config.backbone)
-    train_dataloader = TransferLearningDataLoader(
-        config,
-        validation=False,
-        preprocessing=backbone_preprocessing
-    )
-    validation_dataloader = TransferLearningDataLoader(
-        config,
-        validation=True,
-        preprocessing=backbone_preprocessing
-    )
+    if(config.norway_dataset):
+        train_dataloader = NorwayTransferLearningDataLoader(
+            config,
+            validation=False,
+            preprocessing=backbone_preprocessing
+        )
+        validation_dataloader = NorwayTransferLearningDataLoader(
+            config,
+            validation=True,
+            preprocessing=backbone_preprocessing
+        )
+    else:
+        train_dataloader = TransferLearningDataLoader(
+            config,
+            validation=False,
+            preprocessing=backbone_preprocessing
+        )
+        validation_dataloader = TransferLearningDataLoader(
+            config,
+            validation=True,
+            preprocessing=backbone_preprocessing
+        )
 
     #print the model summary and save it into the output folder
     model.summary()
@@ -94,15 +106,50 @@ def main():
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
 
+    # Define metrics and losses
+    iou_score = tf_keras_metrics.MeanIoU(num_classes=config.number_of_classes)
+    precision = tf_keras_metrics.Precision()
+    #recall = tf_keras_metrics.Recall()
+    #f1_score = FScore(beta=1, class_indexes=config.number_of_classes)
+    #f2_score = FScore(beta=2, threshold=0.5, class_indexes=config.number_of_classes)
+
+
+    if(config.number_of_classes == 2):
+        print("Binary Training")
+        accuracy = tf_keras_metrics.BinaryAccuracy()
+        loss = tf_keras_losses.CategoricalCrossentropy()
+    else:
+        accuracy = tf_keras_metrics.CategoricalAccuracy()
+        loss = tf_keras_losses.CategoricalCrossentropy()
+
     model.compile(
         optimizer=optimizer,
-        loss=tf_keras_losses.categorical_crossentropy,
-        metrics=[tf_keras_metrics.categorical_accuracy, iou_score, precision, recall, f2_score],
+        loss=loss,
+        metrics=[accuracy, tf_keras_metrics.Precision()],
     )
 
-    model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
-              validation_steps=len(validation_dataloader),
-              use_multiprocessing=False)
+    save_example_data(train_dataloader.dataset)
+
+
+
+
+    model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader),
+            validation_data=validation_dataloader.dataset,
+            validation_steps=len(validation_dataloader),
+            use_multiprocessing=False)
+
+
+# def save_example_data(data_loader, comet_experiment=None):
+#     for i, el in enumerate(data_loader):
+#         tf.squeeze(el[1]).numpy()
+#         im = Image.fromarray(tf.squeeze(el[1]).numpy(), 'P')
+#         im.putpalette([
+#             255, 255, 255, #white
+#             255, 0, 0, #red
+#             0,0,255  #blue
+#         ])
+#         im.save("/Users/jeremyscheurer/Desktop/label.png")
+#         break
 
 
 if __name__ == "__main__":
