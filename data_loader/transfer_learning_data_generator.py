@@ -51,7 +51,7 @@ class TransferLearningDataLoader:
             'image_paths': self.slide_paths,
             'labels': self.annotation_paths
         })
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.uint8, tf.uint8])))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], False], [tf.uint8, tf.uint8])))
         dataset = dataset.map(self._fixup_shape)
 
         if(validation):
@@ -62,7 +62,7 @@ class TransferLearningDataLoader:
     def __len__(self):
         return math.ceil(self.image_count / self.config.batch_size)
 
-    def parse_image_and_label(self, image, label):
+    def parse_image_and_label(self, image, label, is_norwegian_data):
         image_path = image.numpy().decode('UTF-8')
         label_path = label.numpy().decode('UTF-8')
 
@@ -71,6 +71,10 @@ class TransferLearningDataLoader:
 
         # Load image with Pillow to make sure we lod it in palette mode.
         label = np.expand_dims(np.array(Image.open(label_path)), -1)
+        if(is_norwegian_data):
+            # somehow the anotations are loaded as 0 and 255 instead of 0 and 1, thus we just divide by 255
+            label = np.divide(label, 255).astype('uint8')
+
         assert label.shape[2] == 1, "label should have 1 channel but has {}".format(label.shape[2])
         label = tf.keras.utils.to_categorical(label, num_classes=self.config.number_of_classes)
 
@@ -136,7 +140,7 @@ class NorwayTransferLearningDataLoader(TransferLearningDataLoader):
             'image_paths': self.slide_paths,
             'labels': self.annotation_paths
         })
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.uint8, tf.uint8])))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], True], [tf.uint8, tf.uint8])))
         dataset = dataset.map(self._fixup_shape)
 
         if(validation):

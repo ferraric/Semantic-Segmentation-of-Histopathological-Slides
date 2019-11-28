@@ -128,7 +128,7 @@ def main():
         metrics=[accuracy, tf_keras_metrics.Precision()],
     )
 
-    save_example_data(train_dataloader.dataset)
+    #save_example_data(train_dataloader.dataset)
 
 
 
