@@ -1,7 +1,8 @@
 {
   "exp_name": "transfer_learning_unet",
   "backbone": "vgg16",
-  "use_backone_encoder_weights": false,
+  "image_net_weights": false,
+  "decoder_block_type" : "transpose",
   "num_epochs": 2,
   "number_of_classes": 2,
   "norway_dataset": true,
