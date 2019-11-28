@@ -109,7 +109,7 @@ def main():
     # Define metrics and losses
     iou_score = tf_keras_metrics.MeanIoU(num_classes=config.number_of_classes)
     precision = tf_keras_metrics.Precision()
-    #recall = tf_keras_metrics.Recall()
+    recall = tf_keras_metrics.Recall()
     #f1_score = FScore(beta=1, class_indexes=config.number_of_classes)
     #f2_score = FScore(beta=2, threshold=0.5, class_indexes=config.number_of_classes)
 
@@ -117,7 +117,7 @@ def main():
     if(config.number_of_classes == 2):
         print("Binary Training")
         accuracy = tf_keras_metrics.BinaryAccuracy()
-        loss = tf_keras_losses.CategoricalCrossentropy()
+        loss = tf_keras_losses.BinaryCrossentropy()
     else:
         accuracy = tf_keras_metrics.CategoricalAccuracy()
         loss = tf_keras_losses.CategoricalCrossentropy()
@@ -125,7 +125,7 @@ def main():
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=[accuracy, tf_keras_metrics.Precision()],
+        metrics=[accuracy, tf_keras_metrics.Precision(), iou_score, f2_score, recall],
     )
 
     #save_example_data(train_dataloader.dataset)
