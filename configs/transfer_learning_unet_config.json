@@ -12,6 +12,7 @@
   "lr_decay_staircase": true,
   "batch_size": 1,
   "shuffle_buffer_size": 2,
+  "image_size" : 512,
   "use_comet_experiments": false,
   "comet_api_key": "NVyYXH1De9UgyELocupO1Lge9",
   "comet_project_name": "semantic-segmentation-skin",
