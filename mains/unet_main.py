@@ -11,7 +11,7 @@ from data_loader.general_data_loader import GeneralDataLoader
 from models.unet import UNetModel
 from utils.config import process_config
 from utils.dirs import create_dirs
-from tensorflow.keras.metrics import MeanIoU
+from tensorflow.keras.metrics import MeanIoU, categorical_accuracy
 
 
 def main():
@@ -63,7 +63,7 @@ def main():
     model.compile(
         optimizer=config.optimizer,
         loss='categorical_crossentropy',
-        metrics=[MeanIoU(3)],
+        metrics=[MeanIoU(3), categorical_accuracy],
         validation_data=data.test_data
     )
 
@@ -85,11 +85,12 @@ def main():
                       validation_data = data.test_data)
 
     with experiment.test():
-        loss, iou = model.evaluate(data.test_data)
+        loss, iou, acc = model.evaluate(data.test_data)
 
         metrics = {
             'loss':loss,
             'MeanIoU': iou,
+            'Accuracy': acc
         }
         experiment.log_metrics(metrics)
 

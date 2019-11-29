@@ -50,6 +50,10 @@ class GeneralDataLoader:
         self.test_data = tf.data.Dataset.zip((input_dataset, label_dataset))
 
 
+        self.train_data = self.train_data.map(self._fixup_shape)
+        self.test_data = self.test_data.map(self._fixup_shape)
+
+
         self.train_data = self.train_data.shuffle(
             buffer_size=self.config.shuffle_buffer_size
         )
@@ -61,16 +65,23 @@ class GeneralDataLoader:
             self.config.batch_size, drop_remainder=True
         )
 
+
+    def _fixup_shape(self, images, labels):
+        images.set_shape([None, None, 3])
+        labels.set_shape([None, None, self.config.number_of_classes])
+        return images, labels
+
+
     def parse_image(self, image_path):
         image_path_tensor = tf.io.read_file(image_path)
         # save imag as grayscale
-        img = tf.image.decode_png(image_path_tensor, channels=1)
+        img = tf.image.decode_png(image_path_tensor, channels=3)
         preprocessed_image = tf.image.convert_image_dtype(img, tf.float32)
         return preprocessed_image
 
     def parse_annotation(self, annotation_path):
         image_path_tensor = tf.io.read_file(annotation_path)
         # save imag as grayscale
-        img = tf.image.decode_png(image_path_tensor, channels=0)
+        img = tf.image.decode_png(image_path_tensor, channels=3)
         img = tf.dtypes.cast(tf.math.divide(img, 255),tf.uint8)
         return img

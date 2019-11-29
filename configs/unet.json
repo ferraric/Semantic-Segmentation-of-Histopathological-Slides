@@ -1,6 +1,6 @@
 {
   "exp_name": "unet",
-  "num_epochs": 100,
+  "num_epochs": 1,
   "shuffle_buffer_size": 10,
   "optimizer": "Adam",
   "learning_rate": 0.001,
@@ -14,5 +14,6 @@
   "model_save_path": "saved_models/unet/",
   "model_save_epoch": 0,
   "patch_size": 512,
-  "patch_channels": 1
+  "patch_channels": 1,
+  "number_of_classes": 3
 }
