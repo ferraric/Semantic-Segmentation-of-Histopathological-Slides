@@ -2,7 +2,6 @@ import tensorflow as tf
 from tensorflow.keras.metrics import Metric
 
 class PositivePredictiveValue(Metric):
-
   def __init__(self, name='positive_predictive_value', **kwargs):
     super(PositivePredictiveValue, self).__init__(name=name, **kwargs)
     self.result = self.add_weight(name='result', initializer='zeros')
@@ -88,7 +87,7 @@ class DiceSimilarityCoefcient(Metric):
       ppv = tp / (tp + fp)
       sen = tp / (tp + fn)
 
-      self.result.assign_add((ppv * sen) / (ppv + sen))
+      self.result.assign_add(2 * (ppv * sen) / (ppv + sen))
 
 
   def result(self):
