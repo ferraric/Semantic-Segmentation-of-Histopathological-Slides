@@ -1,12 +1,11 @@
 from comet_ml import Experiment
 import tensorflow as tf
-
 import json
 import random
 import os,sys,inspect
 import numpy as np
 from PIL import Image
-
+import albumentations as A
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -73,7 +72,8 @@ def main():
         train_dataloader = NorwayTransferLearningDataLoader(
             config,
             validation=False,
-            preprocessing=backbone_preprocessing
+            preprocessing=backbone_preprocessing,
+            augmentation=get_training_augmentations,
         )
         validation_dataloader = NorwayTransferLearningDataLoader(
             config,
@@ -84,7 +84,8 @@ def main():
         train_dataloader = TransferLearningDataLoader(
             config,
             validation=False,
-            preprocessing=backbone_preprocessing
+            preprocessing=backbone_preprocessing,
+            augmentation=get_training_augmentations,
         )
         validation_dataloader = TransferLearningDataLoader(
             config,
@@ -195,6 +196,51 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
             for i in range(1, len(evaluation_metrics)):
                 self.comet_experiment.log_metric("callback_validation" + self.model.metrics[i - 1].name, evaluation_metrics[i])
 
+
+def get_training_augmentations():
+    train_transform = [
+
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+        A.Transpose(p=0.5),
+
+        A.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
+
+        A.IAAAdditiveGaussianNoise(p=0.2),
+        A.IAAPerspective(p=0.5),
+        A.IAAEmboss(p=0.05),
+        A.Blur(p=0.01, blur_limit=3),
+        A.HueSaturationValue(p=1),
+
+        A.OneOf(
+            [
+                A.CLAHE(p=1),
+                A.RandomBrightnessContrast(p=1),
+                A.RandomGamma(p=1),
+            ],
+            p=0.9,
+        ),
+
+        A.OneOf(
+            [
+                A.IAASharpen(p=1),
+                A.Blur(blur_limit=3, p=1),
+                A.MotionBlur(blur_limit=3, p=1),
+            ],
+            p=0.9,
+        ),
+
+
+        A.OneOf([
+            A.ElasticTransform(p=0.5, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
+            A.GridDistortion(p=0.5),
+            A.OpticalDistortion(p=1, distort_limit=2, shift_limit=0.5)
+        ], p=0.5),
+
+
+    ]
+    return A.Compose(train_transform, p=0.6)
 
 if __name__ == "__main__":
     main()
