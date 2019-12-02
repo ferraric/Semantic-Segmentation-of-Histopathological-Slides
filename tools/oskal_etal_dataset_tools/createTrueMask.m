@@ -1,15 +1,13 @@
-function [] = createTrueMask(imgData, createEpidermisMask, createForegroundMask, showFigure)
+function [] = createTrueMask(path_to_xml_file, path_to_image_file, path_to_epidermis_file, createEpidermisMask, createForegroundMask, showFigure)
 
 if nargin == 0
-    imgData = readData();
     showFigure = 0;
     createEpidermisMask = 0;
     createForegroundMask = 1;
 end
 
 %% Parse XML file
-
-xDoc = xmlread(imgData.xml_file);
+xDoc = xmlread(path_to_xml_file);
 Regions=xDoc.getElementsByTagName('Region'); % get a list of all the region tags
 for regioni = 0:Regions.getLength-1
     Region=Regions.item(regioni);  % for each region tag
@@ -74,7 +72,17 @@ end
 %% Create foregroundmask
 if createForegroundMask
     % Convert to HSV
-    I_HSV = rgb2hsv(imgData.I);
+    
+     % as all the ground truth annotations are downlsampled we also need to
+    % downsample the image. Also hsv conversion cant handle such a large
+    % image. 
+    
+    slide_image = imread(path_to_image_file);
+    epidermis_annotation = imread(path_to_epidermis_file);
+    shape = size(epidermis_annotation);
+    resized_slide_image = imresize(slide_image, [shape(1), shape(2)]);
+    
+    I_HSV = rgb2hsv(resized_slide_image);
     %GT = imgData.GT;
     % Split HSV channels
     iH = I_HSV(:,:,1);
@@ -98,8 +106,12 @@ if createForegroundMask
     FG = imfill(FG, 'holes');
     FG = imopen(FG, se);
     
-    fgMaskName = sprintf('%sForeground/%s_FG.png', imgData.caseDir,...
-        imgData.caseName);
+    [path_to_image_folder, casename, ~] = fileparts(path_to_image_file);
+    fgMaskName = sprintf('%s/Foreground_generated/%s_FG.png', path_to_image_folder,...
+        casename);
+    if ~exist(fullfile(sprintf('%s/Foreground_generated', path_to_image_folder)), 'dir')
+        mkdir(fullfile(sprintf('%s/Foreground_generated', path_to_image_folder)))
+    end
     imwrite(FG, fgMaskName);
     % figure; imshow(FG)
 end
@@ -126,5 +138,4 @@ if showFigure
     imshow(dermis_I)
     %imshowpair(foreground_I, epidermis_I, 'montage')
 end
-
 

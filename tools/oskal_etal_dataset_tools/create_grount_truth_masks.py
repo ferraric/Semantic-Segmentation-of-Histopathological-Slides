@@ -32,7 +32,7 @@ def create_grond_truth_mask(epidermis_annotation_folder, foreground_annotation_f
         assert epidermis_file.replace("epidermis", "") == foreground_annotation_files[i].replace("FG", "")
         epidermis = np.array(Image.open(os.path.join(epidermis_annotation_folder, epidermis_file)))
         foreground = np.array(Image.open(os.path.join(foreground_annotation_folder, foreground_annotation_files[i])))
-        assert epidermis.shape == foreground.shape, "Should have same shap but have {} and {}".format(epidermis.shape, foreground.shape)
+        assert epidermis.shape == foreground.shape, "Should have same shape but have {} and {}".format(epidermis.shape, foreground.shape)
         (width, height) = epidermis.shape
         ground_truth = np.zeros((width, height, 3))
         ground_truth[:,:,2] = epidermis
