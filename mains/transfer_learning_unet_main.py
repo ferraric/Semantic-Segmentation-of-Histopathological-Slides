@@ -69,24 +69,43 @@ def main():
 
     if(config.norway_dataset):
         assert config.number_of_classes == 2, config.number_of_classes
-        train_dataloader = NorwayTransferLearningDataLoader(
-            config,
-            validation=False,
-            preprocessing=backbone_preprocessing,
-            augmentation=get_training_augmentations,
-        )
+        if(config.use_image_augmentations):
+            print("using image augmentations")
+            train_dataloader = NorwayTransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+                augmentation=get_training_augmentations,
+            )
+        else:
+            print("not using any image augmentations")
+            train_dataloader = NorwayTransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+            )
         validation_dataloader = NorwayTransferLearningDataLoader(
             config,
             validation=True,
             preprocessing=backbone_preprocessing
         )
     else:
-        train_dataloader = TransferLearningDataLoader(
-            config,
-            validation=False,
-            preprocessing=backbone_preprocessing,
-            augmentation=get_training_augmentations,
-        )
+        if(config.use_image_augmentations):
+            print("using image augmentations")
+            train_dataloader = TransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+                augmentation=get_training_augmentations,
+            )
+        else:
+            print("not using any imgae augmentations")
+            train_dataloader = TransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+            )
+            
         validation_dataloader = TransferLearningDataLoader(
             config,
             validation=True,
