@@ -4,19 +4,29 @@ clear
 
 % as defined in the paper the minimal distance should be 200 not 100
 %minDist = 100;
-minDist = 200;
+minDist = 100;
 d2 = minDist^2;
-
-wait = 0;
-wait_per_slide = 1000000000000;
+totaltiles = 0;
+wait = 1;
+wait_per_slide = 100000;
 generate_train_patches = 1;
+
+number_of_patches = 0;
+total_background_ratio = 0;
+total_other_tissue_ratio = 0;
+total_epidermis_ratio =0;
 
 tileSize = 512;
 logging = {};
 logNr = 1;
-dirs = ["UBC", "UMch"];
+dirs = ["UMch", "UBC"];
 %dirs = ["UMch"];
-savepath = '/Volumes/VERBATIMHD/Code/data/semantic_segmentation_histo/epidermis_segmentation_kay/extracted_patches_dataset';
+if generate_train_patches
+    savepath = sprintf('/Volumes/VERBATIMHD/Code/data/semantic_segmentation_histo/epidermis_segmentation_kay/extracted_patches_dataset/%s', 'train');
+else 
+    savepath = sprintf('/Volumes/VERBATIMHD/Code/data/semantic_segmentation_histo/epidermis_segmentation_kay/extracted_patches_dataset/%s', 'test');
+end
+
 tileFolder = 'patches';
 labelFolder = 'label';
 if ~exist(fullfile(savepath, tileFolder), 'dir')
@@ -47,7 +57,7 @@ for j = length(dirs):-1:1
     cases = {cases.name};
     
     if generate_train_patches
-        for z = 1:length(test_slide_names)
+        for z = 1:length(test_slide_names{1})
             if any(ismember(cases, test_slide_names{1}{z}))
                 cases(ismember(cases, test_slide_names{1}{z})) = [];
             end
@@ -60,7 +70,6 @@ for j = length(dirs):-1:1
     for i = 1:length(cases)
         % Remove file-extention
         [~,caseName,~] = fileparts(cases{i});
-        
         logging{logNr, 1} = caseName;
         
         fprintf('Case number: %s\n-----------------------\n', caseName);
@@ -84,19 +93,26 @@ for j = length(dirs):-1:1
             % i.e. for each class
             pixelsPerClass = sum(sum(GT));
             epidermisPixels = pixelsPerClass(3);
-            numTiles = round((epidermisPixels/(512^2)*10)/50)*50;
+            numTiles = round((epidermisPixels/(512^2)*12)/50)*50;
+
             numTiles = numTiles * 3;
-            fprintf('For this slide we are creating %d tiles', numTiles)
+            totaltiles = totaltiles + numTiles;
+            fprintf('For this slide we are creating %d tiles \n', numTiles)
             logging{logNr, 2} = numTiles;
             
             %********** Generate random tiles ***************
             points = [0 0]; % Starting point for distance checking
             idx = 0;
             wait_idx = 0;
+            number_of_patches_per_slide = 0;
+            epidermis_ratio_per_slide = 0;
+            background_ratio_per_slide = 0;
+            other_tissue_ratio_per_slide = 0;
+            
             nEpidermis = 0;
             nBackground = 0;
             nOtherTissue = 0;
-            
+        
             h1 = waitbar(0,'Initializing waitbar...','Name',sprintf('Extract tiles from %s', caseName));
             while (size(points, 1) <= numTiles)
                 wait_idx = wait_idx +1;
@@ -133,6 +149,7 @@ for j = length(dirs):-1:1
                         % Check if max total number of epidermis tiles are reached
                         if nEpidermis < (numTiles/3)
                             nEpidermis = nEpidermis + 1;
+                            
                             class = 3;
                         else
                             continue
@@ -143,6 +160,7 @@ for j = length(dirs):-1:1
                         if nBackground < (numTiles/3)
                             nBackground = nBackground + 1;
                             class = 1;
+                           
                         else
                             continue
                         end
@@ -152,6 +170,7 @@ for j = length(dirs):-1:1
                         if nOtherTissue < (numTiles/3)
                             nOtherTissue = nOtherTissue + 1;
                             class = 2;
+                           
                         else
                             continue
                         end
@@ -163,6 +182,16 @@ for j = length(dirs):-1:1
                 else
                     continue
                 end
+                
+                total_epidermis_ratio = total_epidermis_ratio + classPixelRatio(:,:,3);
+                epidermis_ratio_per_slide = epidermis_ratio_per_slide + classPixelRatio(:,:,3);
+                
+                total_other_tissue_ratio = total_other_tissue_ratio + classPixelRatio(:,:,2);
+                other_tissue_ratio_per_slide = other_tissue_ratio_per_slide + classPixelRatio(:,:,2);
+                 
+                total_background_ratio = total_background_ratio + classPixelRatio(:,:,1);
+                background_ratio_per_slide = background_ratio_per_slide + classPixelRatio(:,:,1);
+                
                 
                 % Extract tile
                 tileI = I(y1:y2, x1:x2, :);
@@ -180,6 +209,8 @@ for j = length(dirs):-1:1
                 imwrite(tileI, tileName);
                 % Write image label (GT) to disk
                 imwrite(uint8(255 * tileGT(:,:,3)), labeName);
+                number_of_patches = number_of_patches + 1;
+                number_of_patches_per_slide = number_of_patches_per_slide + 1;
                 
                 % Augment images
                 % I think in our case we wont directly augment the images 
@@ -203,6 +234,10 @@ for j = length(dirs):-1:1
                 wait_idx = 0;
                 waitbar(idx/numTiles, h1, sprintf('Tile number %d written to disk', idx))
             end
+            fprintf('NUmber of patches per slide %f \n', number_of_patches_per_slide)
+            fprintf('Background ratio for slide %f \n',background_ratio_per_slide / number_of_patches_per_slide); 
+            fprintf('Other tissue ratio for slide %f \n',other_tissue_ratio_per_slide / number_of_patches_per_slide); 
+            fprintf('Epidermis ratio for slide %f \n',epidermis_ratio_per_slide / number_of_patches_per_slide); 
             close(h1)
             logging{logNr, 3} = nBackground;
             logging{logNr, 4} = nOtherTissue;
@@ -220,4 +255,10 @@ for j = length(dirs):-1:1
     end
     
 end
+fprintf('total tiles that could be generated %d \n', totaltiles)
+fprintf('Number of patches %d \n', number_of_patches);
+fprintf('Background pixel ratio %f  \n', total_background_ratio / number_of_patches);
+fprintf('Othe tissues pixel ratio %f\n', total_other_tissue_ratio / number_of_patches);
+fprintf('Epidermis pixel ratio %f\n', total_epidermis_ratio / number_of_patches);
+
 xlswrite('numTilesExtra.xls',logging)
