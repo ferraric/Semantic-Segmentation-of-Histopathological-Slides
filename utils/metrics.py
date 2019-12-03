@@ -1,6 +1,4 @@
 import tensorflow as tf
-from tensorflow_addons.metrics import MatthewsCorrelationCoefficient
-
 
 class PositivePredictiveValue(tf.keras.metrics.Metric):
     def __init__(self, name="positive_predictive_value", **kwargs):
