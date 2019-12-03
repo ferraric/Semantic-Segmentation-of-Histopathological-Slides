@@ -17,11 +17,10 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
-from models.transfer_learning_models.transfer_learning_implementations.metrics import *
+from utils.metrics import MatthewsCorrelationCoefficient, DiceSimilarityCoefcient, MeanIouWithArgmax
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
-#import models.transfer_learning_models.transfer_learning_implementations as sm
 import segmentation_models as sm
 
 from utils.config import process_config
@@ -68,6 +67,7 @@ def main():
     backbone_preprocessing = sm.get_preprocessing(config.backbone)
 
     if(config.norway_dataset):
+        print("using norwegian dataset")
         assert config.number_of_classes == 2, config.number_of_classes
         if(config.use_image_augmentations):
             print("using image augmentations")
@@ -90,6 +90,7 @@ def main():
             preprocessing=backbone_preprocessing
         )
     else:
+        print("using our dataset")
         if(config.use_image_augmentations):
             print("using image augmentations")
             train_dataloader = TransferLearningDataLoader(
@@ -132,22 +133,30 @@ def main():
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
     # define metrics and losses
-    precision = tf_keras_metrics.Precision()
-    recall = tf_keras_metrics.Recall()
+    precision = tf_keras_metrics.Precision() # positive predictive value in the paper
+    recall = tf_keras_metrics.Recall() # equivalent to sensitivity in the norway paper
+    matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
+    dice_similarity_coefficient = DiceSimilarityCoefcient()
 
     if(config.number_of_classes == 2):
+        print("Doing binary classification")
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
+        mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
+
     elif(config.number_of_classes > 2):
+        print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
         accuracy = tf_keras_metrics.categorical_accuracy
+        mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
+
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
 
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=[accuracy, precision, recall, mean_iou_with_argmax],
+        metrics=[precision, recall, dice_similarity_coefficient, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
     )
 
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
@@ -155,6 +164,9 @@ def main():
               callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
                                                        comet_experiment=experiment)],
               use_multiprocessing=False)
+
+
+
 
 def save_data(validation_dataloader, comet_experiment, config):
     for i, el in enumerate(validation_dataloader.dataset):
