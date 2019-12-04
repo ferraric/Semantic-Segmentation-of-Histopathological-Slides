@@ -17,7 +17,8 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
-from utils.metrics import MatthewsCorrelationCoefficient, DiceSimilarityCoefcient, MeanIouWithArgmax
+from utils.metrics import MeanIouWithArgmax, MatthewsCorrelationCoefficient
+from tensorflow_addons.metrics import F1Score
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
@@ -61,7 +62,8 @@ def main():
     ) as json_file:
         json.dump(config, json_file)
 
-    # define model and data
+    # Define model and data
+    ########################
     transfer_learning_unet = TransferLearningUnetModel(config)
     model = transfer_learning_unet.model
     backbone_preprocessing = sm.get_preprocessing(config.backbone)
@@ -75,7 +77,7 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations,
+                augmentation=get_training_augmentations(p=0.6),
             )
         else:
             print("not using any image augmentations")
@@ -97,7 +99,7 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations,
+                augmentation=get_training_augmentations(p=0.6),
             )
         else:
             print("not using any imgae augmentations")
@@ -124,7 +126,6 @@ def main():
 
     save_data(validation_dataloader, experiment, config)
 
-
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=config.learning_rate,
         decay_steps=config.decay_steps,
@@ -132,23 +133,25 @@ def main():
         staircase=config.lr_decay_staircase)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
-    # define metrics and losses
+    # Define metrics and losses
+    ###########################
     precision = tf_keras_metrics.Precision() # positive predictive value in the paper
     recall = tf_keras_metrics.Recall() # equivalent to sensitivity in the norway paper
-    matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
-    dice_similarity_coefficient = DiceSimilarityCoefcient()
 
     if(config.number_of_classes == 2):
         print("Doing binary classification")
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
+        f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
 
     elif(config.number_of_classes > 2):
         print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
         accuracy = tf_keras_metrics.categorical_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
+        f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
 
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
@@ -156,16 +159,15 @@ def main():
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=[precision, recall, dice_similarity_coefficient, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
+        metrics=[precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
     )
+
 
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
               callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
                                                        comet_experiment=experiment)],
               use_multiprocessing=False)
-
-
 
 
 def save_data(validation_dataloader, comet_experiment, config):
@@ -228,13 +230,12 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
                 self.comet_experiment.log_metric("callback_validation" + self.model.metrics[i - 1].name, evaluation_metrics[i])
 
 
-def get_training_augmentations():
-    train_transform = [
+def get_training_augmentations(p=0.6):
+    return A.Compose([
 
         A.HorizontalFlip(p=0.5),
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
-        A.Transpose(p=0.5),
 
         A.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
 
@@ -246,7 +247,6 @@ def get_training_augmentations():
 
         A.OneOf(
             [
-                A.CLAHE(p=1),
                 A.RandomBrightnessContrast(p=1),
                 A.RandomGamma(p=1),
             ],
@@ -270,8 +270,7 @@ def get_training_augmentations():
         ], p=0.5),
 
 
-    ]
-    return A.Compose(train_transform, p=0.6)
+    ])
 
 if __name__ == "__main__":
     main()
