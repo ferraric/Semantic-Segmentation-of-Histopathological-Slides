@@ -11,9 +11,8 @@ class PositivePredictiveValue(Metric):
         self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        #y_true = tf.math.argmax(y_true, axis=-1)
-        #y_pred = tf.math.argmax(y_pred, axis=-1)
-
+        y_true = tf.math.argmax(y_true, axis=-1)
+        y_pred = tf.math.argmax(y_pred, axis=-1)
         y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
         y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
 
@@ -22,13 +21,12 @@ class PositivePredictiveValue(Metric):
         tp = tf.linalg.diag_part(cm)
         fp = tf.math.reduce_sum(cm, axis=1) - tp
 
-
+        self.value.assign_add(-self.value)
         self.value.assign_add(tp / (tp + fp))
 
     def result(self):
         new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
         return tf.math.reduce_mean(new)
-
 
     def reset_states(self):
         """Resets all of the metric state variables."""
@@ -43,8 +41,8 @@ class Sensitivity(Metric):
         self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        #y_true = tf.math.argmax(y_true, axis=-1)
-        #y_pred = tf.math.argmax(y_pred, axis=-1)
+        y_true = tf.math.argmax(y_true, axis=-1)
+        y_pred = tf.math.argmax(y_pred, axis=-1)
 
         y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
         y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
@@ -54,7 +52,7 @@ class Sensitivity(Metric):
         tp = tf.linalg.diag_part(cm)
         fn = tf.math.reduce_sum(cm, axis=0) - tp     
 
-
+        self.value.assign_add(-self.value)
         self.value.assign_add(tp / (tp + fn))
 
     def result(self):
@@ -76,8 +74,8 @@ class DiceSimilarityCoefcient(Metric):
         self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        #y_true = tf.math.argmax(y_true, axis=-1)
-        #y_pred = tf.math.argmax(y_pred, axis=-1)
+        y_true = tf.math.argmax(y_true, axis=-1)
+        y_pred = tf.math.argmax(y_pred, axis=-1)
 
         y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
         y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
@@ -92,6 +90,7 @@ class DiceSimilarityCoefcient(Metric):
         ppv = tp / (tp + fp)
         sen = tp / (tp + fn)
 
+        self.value.assign_add(-self.value)
         self.value.assign_add(2 * (ppv * sen) / (ppv + sen))
 
     def result(self):
@@ -112,8 +111,8 @@ class MatthewsCorrelationCoefcient(Metric):
         self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        #y_true = tf.math.argmax(y_true, axis=-1)
-        #y_pred = tf.math.argmax(y_pred, axis=-1)
+        y_true = tf.math.argmax(y_true, axis=-1)
+        y_pred = tf.math.argmax(y_pred, axis=-1)
 
         y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
         y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
@@ -129,6 +128,7 @@ class MatthewsCorrelationCoefcient(Metric):
         top = tf.dtypes.cast( (tp * tn) - (fp * fn), dtype=tf.float64)
         bottom = tf.math.sqrt( tf.dtypes.cast( (tp + fp)*(tp + fn)*(tn + fp)*(tn + fn), dtype=tf.float64) )
 
+        self.value.assign_add(-self.value)
         self.value.assign_add(tf.math.divide_no_nan(top, bottom))      
 
     def result(self):
