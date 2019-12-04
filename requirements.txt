@@ -99,4 +99,8 @@ zipp==0.6.0
 keras_applications>=1.0.7,<=1.0.8
 image-classifiers==1.0.0
 efficientnet==1.0.0
+tf-estimator-nightly==2.0.0.dev2019120309
+tf-nightly==2.1.0.dev20191203
+tfa-nightly==0.7.0.dev20191201
+tensorflow_addons
 
