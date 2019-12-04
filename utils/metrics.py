@@ -1,132 +1,140 @@
 import tensorflow as tf
+import tensorflow.keras.backend as K
 from tensorflow.keras.metrics import Metric
 
+
 class PositivePredictiveValue(Metric):
-  def __init__(self, name='positive_predictive_value', **kwargs):
-    super(PositivePredictiveValue, self).__init__(name=name, **kwargs)
-    self.result = self.add_weight(name='result', initializer='zeros')
-    self.tp = tf.keras.metrics.TruePositives()
-    self.tn = tf.keras.metrics.TrueNegatives()
-    self.fp = tf.keras.metrics.FalsePositives()
-    self.fn = tf.keras.metrics.FalseNegatives()
+    def __init__(self, num_classes, name='positive_predictive_value', **kwargs):
+        super(PositivePredictiveValue, self).__init__(name=name, **kwargs)
 
-  def update_state(self, y_true, y_pred, sample_weight=None):
-      y_true = tf.reshape(y_true, [-1])
-      y_pred = tf.reshape(y_pred, [-1])
+        self.num_classes = num_classes
+        self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
-      self.tp.reset_states()
-      self.tp.update_state(y_true, y_pred)
-      tp = self.tp.result()
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        #y_true = tf.math.argmax(y_true, axis=-1)
+        #y_pred = tf.math.argmax(y_pred, axis=-1)
 
-      self.fp.reset_states()
-      self.fp.update_state(y_true, y_pred)
-      fp = self.fp.result()
+        y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
+        y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
+
+        cm = tf.math.confusion_matrix(y_true, y_pred, num_classes=self.num_classes)
+
+        tp = tf.linalg.diag_part(cm)
+        fp = tf.math.reduce_sum(cm, axis=1) - tp
 
 
-      self.result.assign_add(tp / (tp + fp))
+        self.value.assign_add(tp / (tp + fp))
 
-  def result(self):
-    return self.result
+    def result(self):
+        new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
+        return tf.math.reduce_mean(new)
+
+
+    def reset_states(self):
+        """Resets all of the metric state variables."""
+        tf.keras.backend.set_value(self.value, tf.tile(tf.constant([0], dtype=tf.float64), (self.num_classes,)))
 
 
 class Sensitivity(Metric):
-  def __init__(self, name='sensitivity', **kwargs):
-    super(Sensitivity, self).__init__(name=name, **kwargs)
-    self.result = self.add_weight(name='result', initializer='zeros')
-    self.tp = tf.keras.metrics.TruePositives()
-    self.tn = tf.keras.metrics.TrueNegatives()
-    self.fp = tf.keras.metrics.FalsePositives()
-    self.fn = tf.keras.metrics.FalseNegatives()
+    def __init__(self, num_classes, name='sensitivity', **kwargs):
+        super(Sensitivity, self).__init__(name=name, **kwargs)
 
-  def update_state(self, y_true, y_pred, sample_weight=None):
-      y_true = tf.reshape(y_true, [-1])
-      y_pred = tf.reshape(y_pred, [-1])
+        self.num_classes = num_classes
+        self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
-      self.tp.reset_states()
-      self.tp.update_state(y_true, y_pred)
-      tp = self.tp.result()
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        #y_true = tf.math.argmax(y_true, axis=-1)
+        #y_pred = tf.math.argmax(y_pred, axis=-1)
 
-      self.fn.reset_states()
-      self.fn.update_state(y_true, y_pred)
-      fn = self.fn.result()
+        y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
+        y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
 
-      self.result.assign_add(tp / (tp + fn))
+        cm = tf.math.confusion_matrix(y_true, y_pred, num_classes=self.num_classes)
+
+        tp = tf.linalg.diag_part(cm)
+        fn = tf.math.reduce_sum(cm, axis=0) - tp     
 
 
+        self.value.assign_add(tp / (tp + fn))
 
-  def result(self):
-    return self.result
+    def result(self):
+        new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
+        return tf.math.reduce_mean(new)
+
+    def reset_states(self):
+        """Resets all of the metric state variables."""
+        tf.keras.backend.set_value(self.value, tf.tile(tf.constant([0], dtype=tf.float64), (self.num_classes,)))
+
 
 
 
 class DiceSimilarityCoefcient(Metric):
-  def __init__(self, name='dice_similarity_coefcient', **kwargs):
-    super(DiceSimilarityCoefcient, self).__init__(name=name, **kwargs)
-    self.result = self.add_weight(name='result', initializer='zeros')
-    self.tp = tf.keras.metrics.TruePositives()
-    self.tn = tf.keras.metrics.TrueNegatives()
-    self.fp = tf.keras.metrics.FalsePositives()
-    self.fn = tf.keras.metrics.FalseNegatives()
+    def __init__(self, num_classes, name='dice_similarity_coefcient', **kwargs):
+        super(DiceSimilarityCoefcient, self).__init__(name=name, **kwargs)
 
-  def update_state(self, y_true, y_pred, sample_weight=None):
-      y_true = tf.reshape(y_true, [-1])
-      y_pred = tf.reshape(y_pred, [-1])
+        self.num_classes = num_classes
+        self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
-      self.tp.reset_states()
-      self.tp.update_state(y_true, y_pred)
-      tp = self.tp.result()
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        #y_true = tf.math.argmax(y_true, axis=-1)
+        #y_pred = tf.math.argmax(y_pred, axis=-1)
 
-      self.fp.reset_states()
-      self.fp.update_state(y_true, y_pred)
-      fp = self.fp.result()
+        y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
+        y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
 
-      self.fn.reset_states()
-      self.fn.update_state(y_true, y_pred)
-      fn = self.fn.result()
+        cm = tf.math.confusion_matrix(y_true, y_pred, num_classes=self.num_classes)
 
-      ppv = tp / (tp + fp)
-      sen = tp / (tp + fn)
-
-      self.result.assign_add(2 * (ppv * sen) / (ppv + sen))
+        tp = tf.linalg.diag_part(cm)
+        fp = tf.math.reduce_sum(cm, axis=1) - tp
+        fn = tf.math.reduce_sum(cm, axis=0) - tp     
 
 
-  def result(self):
-    return self.result
+        ppv = tp / (tp + fp)
+        sen = tp / (tp + fn)
+
+        self.value.assign_add(2 * (ppv * sen) / (ppv + sen))
+
+    def result(self):
+        new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
+        return tf.math.reduce_mean(new)
+
+    def reset_states(self):
+        """Resets all of the metric state variables."""
+        tf.keras.backend.set_value(self.value, tf.tile(tf.constant([0], dtype=tf.float64), (self.num_classes,)))
+
+
 
 class MatthewsCorrelationCoefcient(Metric):
-  def __init__(self, name='matthews_correlation_coefcient', **kwargs):
-    super(MatthewsCorrelationCoefcient, self).__init__(name=name, **kwargs)
-    self.result = self.add_weight(name='result', initializer='zeros')
-    self.tp = tf.keras.metrics.TruePositives()
-    self.tn = tf.keras.metrics.TrueNegatives()
-    self.fp = tf.keras.metrics.FalsePositives()
-    self.fn = tf.keras.metrics.FalseNegatives()
+    def __init__(self, num_classes, name='matthews_correlation_coefcient', **kwargs):
+        super(MatthewsCorrelationCoefcient, self).__init__(name=name, **kwargs)
 
-  def update_state(self, y_true, y_pred, sample_weight=None):
-      y_true = tf.reshape(y_true, [-1])
-      y_pred = tf.reshape(y_pred, [-1])
+        self.num_classes = num_classes
+        self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
 
-      self.tp.reset_states()
-      self.tp.update_state(y_true, y_pred)
-      tp = self.tp.result()
+    def update_state(self, y_true, y_pred, sample_weight=None):
+        #y_true = tf.math.argmax(y_true, axis=-1)
+        #y_pred = tf.math.argmax(y_pred, axis=-1)
 
-      self.tn.reset_states()
-      self.tn.update_state(y_true, y_pred)
-      tn = self.tn.result()
+        y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
+        y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
 
-      self.fp.reset_states()
-      self.fp.update_state(y_true, y_pred)
-      fp = self.fp.result()
+        cm = tf.math.confusion_matrix(y_true, y_pred, num_classes=self.num_classes)
 
-      self.fn.reset_states()
-      self.fn.update_state(y_true, y_pred)
-      fn = self.fn.result()
-
-      top = (tp * tn) - (fp * fn)
-      bottom = tf.math.sqrt( (tp + fp)*(tp + fn)*(tn + fp)*(tn + fn) )
-
-      self.result.assign_add(top / bottom)
+        tp = tf.linalg.diag_part(cm)
+        fp = tf.math.reduce_sum(cm, axis=1) - tp
+        fn = tf.math.reduce_sum(cm, axis=0) - tp     
+        tn = tf.tile(tf.reshape(tf.math.reduce_sum(cm), [1]), tf.shape(tp)) - tp - fp - fn
 
 
-  def result(self):
-    return self.result
+        top = tf.dtypes.cast( (tp * tn) - (fp * fn), dtype=tf.float64)
+        bottom = tf.math.sqrt( tf.dtypes.cast( (tp + fp)*(tp + fn)*(tn + fp)*(tn + fn), dtype=tf.float64) )
+
+        self.value.assign_add(tf.math.divide_no_nan(top, bottom))      
+
+    def result(self):
+        new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
+        return tf.math.reduce_mean(new)
+
+    def reset_states(self):
+        """Resets all of the metric state variables."""
+        tf.keras.backend.set_value(self.value, tf.tile(tf.constant([0], dtype=tf.float64), (self.num_classes,)))
