@@ -96,8 +96,7 @@ widgetsnbextension==3.5.1
 wrapt==1.11.2
 wurlitzer==1.0.3
 zipp==0.6.0
-keras_applications>=1.0.7,<=1.0.8
+keras_applications>=1.0.7
 image-classifiers==1.0.0
 efficientnet==1.0.0
-tensorflow_addons
 
