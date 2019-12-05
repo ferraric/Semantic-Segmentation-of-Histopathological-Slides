@@ -221,7 +221,6 @@ def save_input_label_and_prediction(model, validation_dataloader, comet_experime
 
         else:
             raise NotImplementedError()
-        prediction_image.save("/Users/jeremyscheurer/Desktop/hey.png")
         comet_experiment.log_image(input_image, name="input_image_epoch{}_step{}".format(epoch, step))
         comet_experiment.log_image(prediction_image, name="prediction_image_epoch{}_step{}".format(epoch, step))
         comet_experiment.log_image(label_image, name="label_image_epoch{}_step{}".format(epoch, step))
