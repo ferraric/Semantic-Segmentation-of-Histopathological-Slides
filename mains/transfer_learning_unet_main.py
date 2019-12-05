@@ -17,8 +17,7 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
-from utils.metrics import MeanIouWithArgmax, MatthewsCorrelationCoefficient
-from tensorflow_addons.metrics import F1Score
+from utils.metrics import MeanIouWithArgmax, DiceSimilarityCoefficient, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
@@ -143,15 +142,17 @@ def main():
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
-        f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
-        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
+        f1_score = DiceSimilarityCoefficient(num_classes=2)  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=2)
 
     elif(config.number_of_classes > 2):
         print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
         accuracy = tf_keras_metrics.categorical_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
-        f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
+        f1_score = DiceSimilarityCoefficient(num_classes=config.number_of_classes)  # dice similarity is equivalent to f1 score
+
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=config.number_of_classes)
 
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
@@ -162,11 +163,10 @@ def main():
         metrics=[precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
     )
 
-    return
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
               callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
-                                                       comet_experiment=experiment)],
+                                                       comet_experiment=experiment, config=config)],
               use_multiprocessing=False)
 
 
