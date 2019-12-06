@@ -17,8 +17,7 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
-from utils.metrics import MeanIouWithArgmax, DiceSimilarityCoefficient, MatthewsCorrelationCoefficient
-from tensorflow_addons.metrics import F1Score
+from utils.metrics import MeanIouWithArgmax, F1Score, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
