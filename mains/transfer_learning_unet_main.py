@@ -18,6 +18,7 @@ from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
 from utils.metrics import MeanIouWithArgmax, DiceSimilarityCoefficient, MatthewsCorrelationCoefficient
+from tensorflow_addons.metrics import F1Score
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
@@ -142,17 +143,16 @@ def main():
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
-        f1_score = DiceSimilarityCoefficient(num_classes=2)  # dice similarity is equivalent to f1 score
-        matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=2)
+        f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
 
     elif(config.number_of_classes > 2):
         print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
         accuracy = tf_keras_metrics.categorical_accuracy
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
-        f1_score = DiceSimilarityCoefficient(num_classes=config.number_of_classes)  # dice similarity is equivalent to f1 score
-
-        matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=config.number_of_classes)
+        f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
 
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
@@ -221,9 +221,9 @@ def save_input_label_and_prediction(model, validation_dataloader, comet_experime
 
         else:
             raise NotImplementedError()
-        comet_experiment.log_image(input_image, name="input_image_epoch{}_step{}".format(epoch, step))
-        comet_experiment.log_image(prediction_image, name="prediction_image_epoch{}_step{}".format(epoch, step))
-        comet_experiment.log_image(label_image, name="label_image_epoch{}_step{}".format(epoch, step))
+        comet_experiment.log_image(input_image, name="input_image_epoch{}_step{}_nr{}".format(epoch, step, i))
+        comet_experiment.log_image(prediction_image, name="prediction_image_epoch{}_step{}_nr{}".format(epoch, step, i))
+        comet_experiment.log_image(label_image, name="label_image_epoch{}_step{}_nr{}".format(epoch, step, i))
 
         #image.save(os.path.join(config.summary_dir, "image.png"))
         #label.save(os.path.join(config.summary_dir, "label.png"))
