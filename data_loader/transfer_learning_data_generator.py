@@ -84,8 +84,10 @@ class TransferLearningDataLoader:
         assert label.shape[2] == self.config.number_of_classes, "label should have {} channels but has {}".format(self.config.number_of_classes, label.shape[2])
 
         if self.augmentation:
-            img = self.augmentation(img)
-            label = self.augmentation(label)
+            data = {"image": img, "mask": label}
+            augmentations = self.augmentation[0](**data)
+            img = augmentations["image"]
+            label = augmentations["mask"]
 
         if self.preprocessing:
             img = self.preprocessing(img)

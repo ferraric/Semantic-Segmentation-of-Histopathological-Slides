@@ -268,7 +268,8 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
 def get_training_augmentations(p=0.6):
     return A.Compose([
 
-        A.HorizontalFlip(p=0.5),
+        A.RandomRotate90(p=0.5),
+        #A.HorizontalFlip(p=0.5),j
         A.VerticalFlip(p=0.5),
         A.RandomRotate90(p=0.5),
 
@@ -302,10 +303,8 @@ def get_training_augmentations(p=0.6):
             A.ElasticTransform(p=0.5, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
             A.GridDistortion(p=0.5),
             A.OpticalDistortion(p=1, distort_limit=2, shift_limit=0.5)
-        ], p=0.5),
-
-
-    ])
+            ])
+        ], p=p),
 
 if __name__ == "__main__":
     main()
