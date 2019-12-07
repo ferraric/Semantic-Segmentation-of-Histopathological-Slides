@@ -17,6 +17,7 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
+from models.unet import UNetModel
 from utils.metrics import MeanIouWithArgmax, F1Score, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
@@ -63,9 +64,9 @@ def main():
 
     # Define model and data
     ########################
-    transfer_learning_unet = TransferLearningUnetModel(config)
-    model = transfer_learning_unet.model
-    backbone_preprocessing = sm.get_preprocessing(config.backbone)
+    model = UNetModel(config)
+    #model = norway_unet_model.model
+    #backbone_preprocessing = sm.get_preprocessing(config.backbone)
 
     if(config.norway_dataset):
         print("using norwegian dataset")
@@ -75,20 +76,16 @@ def main():
             train_dataloader = NorwayTransferLearningDataLoader(
                 config,
                 validation=False,
-                preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations(p=0.6),
             )
         else:
             print("not using any image augmentations")
             train_dataloader = NorwayTransferLearningDataLoader(
                 config,
-                validation=False,
-                preprocessing=backbone_preprocessing,
+                validation=False
             )
         validation_dataloader = NorwayTransferLearningDataLoader(
             config,
             validation=True,
-            preprocessing=backbone_preprocessing
         )
     else:
         print("using our dataset")
@@ -97,30 +94,27 @@ def main():
             train_dataloader = TransferLearningDataLoader(
                 config,
                 validation=False,
-                preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations(p=0.6),
+
             )
         else:
             print("not using any imgae augmentations")
             train_dataloader = TransferLearningDataLoader(
                 config,
                 validation=False,
-                preprocessing=backbone_preprocessing,
             )
             
         validation_dataloader = TransferLearningDataLoader(
             config,
             validation=True,
-            preprocessing=backbone_preprocessing
         )
 
     #print the model summary and save it into the output folder
-    model.summary()
-    model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
-    with open(model_architecture_path, "w") as fh:
-        # Pass the file handle in as a lambda function to make it callable
-        model.summary(print_fn=lambda x: fh.write(x + "\n"))
-    experiment.log_asset(model_architecture_path)
+    # model.summary()
+    # model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
+    # with open(model_architecture_path, "w") as fh:
+    #     # Pass the file handle in as a lambda function to make it callable
+    #     model.summary(print_fn=lambda x: fh.write(x + "\n"))
+    # experiment.log_asset(model_architecture_path)
     experiment.log_asset(args.config)
 
     save_input_label_and_prediction(model, validation_dataloader, experiment, config, 0, 0)
@@ -162,9 +156,11 @@ def main():
         metrics=[precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
     )
 
-    model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
+    model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader),
+              validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
-              callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
+              callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps,
+                                                       validation_dataloader=validation_dataloader,
                                                        comet_experiment=experiment, config=config)],
               use_multiprocessing=False)
 

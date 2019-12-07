@@ -92,6 +92,8 @@ class TransferLearningDataLoader:
         if self.preprocessing:
             img = self.preprocessing(img)
 
+        img = img / 255.0
+
         return img, label
 
     def _fixup_shape(self, images, labels):
