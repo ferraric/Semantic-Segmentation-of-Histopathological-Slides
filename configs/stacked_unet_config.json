@@ -1,0 +1,22 @@
+{
+  "exp_name": "stacked_unet",
+  "num_epochs": 20,
+  "number_of_classes": 2,
+  "norway_dataset": true,
+  "learning_rate": 0.001,
+  "decay_steps": 100000,
+  "decay_rate": 0.96,
+  "lr_decay_staircase": true,
+  "batch_size": 1,
+  "shuffle_buffer_size": 1,
+  "image_size": 512,
+  "validate_every_n_steps": 1,
+  "use_comet_experiments": false,
+  "comet_api_key": "NVyYXH1De9UgyELocupO1Lge9",
+  "comet_project_name": "semantic-segmentation-skin",
+  "comet_workspace": "jerry-crea",
+  "train_dataset_path": "/Users/claudioferrari/Desktop/9.Semester/DeepLearning/data/norway_data",
+  "validation_dataset_path": "/Users/claudioferrari/Desktop/9.Semester/DeepLearning/data/norway_data",
+  "patch_size": 512,
+  "patch_channels": 3
+}
