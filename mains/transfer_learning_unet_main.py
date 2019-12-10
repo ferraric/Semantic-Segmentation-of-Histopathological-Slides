@@ -1,12 +1,11 @@
 from comet_ml import Experiment
 import tensorflow as tf
-
 import json
 import random
 import os,sys,inspect
 import numpy as np
 from PIL import Image
-
+import albumentations as A
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -18,11 +17,10 @@ from data_loader.transfer_learning_data_generator import (
 from models.transfer_learning_models.transfer_learning_unet_model import (
     TransferLearningUnetModel,
 )
-from models.transfer_learning_models.transfer_learning_implementations.metrics import *
+from utils.jeremy_metrics import MeanIouWithArgmax, F1Score, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 os.environ["SM_FRAMEWORK"] = "tf.keras"
-#import models.transfer_learning_models.transfer_learning_implementations as sm
 import segmentation_models as sm
 
 from utils.config import process_config
@@ -63,29 +61,53 @@ def main():
     ) as json_file:
         json.dump(config, json_file)
 
-    # define model and data
+    # Define model and data
+    ########################
     transfer_learning_unet = TransferLearningUnetModel(config)
     model = transfer_learning_unet.model
     backbone_preprocessing = sm.get_preprocessing(config.backbone)
 
     if(config.norway_dataset):
+        print("using norwegian dataset")
         assert config.number_of_classes == 2, config.number_of_classes
-        train_dataloader = NorwayTransferLearningDataLoader(
-            config,
-            validation=False,
-            preprocessing=backbone_preprocessing
-        )
+        if(config.use_image_augmentations):
+            print("using image augmentations")
+            train_dataloader = NorwayTransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+                augmentation=get_training_augmentations(p=0.6),
+            )
+        else:
+            print("not using any image augmentations")
+            train_dataloader = NorwayTransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+            )
         validation_dataloader = NorwayTransferLearningDataLoader(
             config,
             validation=True,
             preprocessing=backbone_preprocessing
         )
     else:
-        train_dataloader = TransferLearningDataLoader(
-            config,
-            validation=False,
-            preprocessing=backbone_preprocessing
-        )
+        print("using our dataset")
+        if(config.use_image_augmentations):
+            print("using image augmentations")
+            train_dataloader = TransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+                augmentation=get_training_augmentations(p=0.6),
+            )
+        else:
+            print("not using any imgae augmentations")
+            train_dataloader = TransferLearningDataLoader(
+                config,
+                validation=False,
+                preprocessing=backbone_preprocessing,
+            )
+            
         validation_dataloader = TransferLearningDataLoader(
             config,
             validation=True,
@@ -101,8 +123,7 @@ def main():
     experiment.log_asset(model_architecture_path)
     experiment.log_asset(args.config)
 
-    save_data(validation_dataloader, experiment, config)
-
+    save_input_label_and_prediction(model, validation_dataloader, experiment, config, 0, 0)
 
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=config.learning_rate,
@@ -111,75 +132,121 @@ def main():
         staircase=config.lr_decay_staircase)
     optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
 
-    # define metrics and losses
-    precision = tf_keras_metrics.Precision()
-    recall = tf_keras_metrics.Recall()
+    # Define metrics and losses
+    ###########################
+    precision = tf_keras_metrics.Precision() # positive predictive value in the paper
+    recall = tf_keras_metrics.Recall() # equivalent to sensitivity in the norway paper
 
     if(config.number_of_classes == 2):
+        print("Doing binary classification")
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
+        mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
+        f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
+
     elif(config.number_of_classes > 2):
+        print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
         accuracy = tf_keras_metrics.categorical_accuracy
+        mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
+        f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
+
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
+
 
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=[accuracy, precision, recall, mean_iou_with_argmax],
+        metrics=[precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
     )
 
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
               callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
-                                                       comet_experiment=experiment)],
+                                                       comet_experiment=experiment, config=config)],
               use_multiprocessing=False)
 
-def save_data(validation_dataloader, comet_experiment, config):
-    for i, el in enumerate(validation_dataloader.dataset):
-        assert el[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes)
-        im = el[0][0]
-        label = el[1][0]
-        np.save(os.path.join(config.summary_dir, "image.npy"), im.numpy())
-        np.save(os.path.join(config.summary_dir, "label.npy"), im.numpy())
 
-        image = Image.fromarray(im.numpy().astype('uint8'), 'RGB')
-        comet_experiment.log_image(image)
+def save_input_label_and_prediction(model, validation_dataloader, comet_experiment, config, epoch, step):
+    for i, data in enumerate(validation_dataloader.dataset):
+        assert data[0][0].numpy().shape == (config.image_size, config.image_size, 3), data[0][0].numpy().shape
+        assert data[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), data[1][0].numpy().shape
+        input = data[0][:1] #keep batch dimensions
+        label = data[1][0]
+        np.save(os.path.join(config.summary_dir, "image.npy"), input.numpy())
+        np.save(os.path.join(config.summary_dir, "label.npy"), label.numpy())
+
+        input_np = input[0].numpy().astype('uint8')
+        assert input_np.shape == (config.image_size, config.image_size, 3), input_np.shape
+        input_image = Image.fromarray(input_np, 'RGB')
+
+        prediction = model.predict(input)
+        prediction_np = np.argmax(prediction[0], axis=-1).astype('uint8')
+        assert prediction_np.shape == (config.image_size, config.image_size), prediction_np.shape
+        prediction_image = Image.fromarray(prediction_np, "P")
+
         np_label = np.argmax(label.numpy(), -1).astype('uint8')
-        assert np_label.shape == (config.image_size, config.image_size)
-        label = Image.fromarray(np_label, 'P')
+        assert np_label.shape == (config.image_size, config.image_size), np_label.shape
+        label_image = Image.fromarray(np_label, 'P')
+
 
         if(config.number_of_classes == 3):
-            label.putpalette([
+            input_image.putpalette([
+                255, 255, 255,  # white
+                255, 0, 0,  # red
+                0, 0, 255  # blue
+            ])
+            prediction_image.putpalette([
+                255, 255, 255,  # white
+                255, 0, 0,  # red
+                0, 0, 255  # blue
+            ])
+            label_image.putpalette([
                 255, 255, 255,  # white
                 255, 0, 0,  # red
                 0, 0, 255  # blue
             ])
         elif(config.number_of_classes ==2):
-            label.putpalette([
+            prediction_image.putpalette([
+                255, 255, 255,  # white
+                0, 0, 0,  # black
+            ])
+            label_image.putpalette([
                 255, 255, 255,  # white
                 0, 0, 0,  # black
             ])
 
         else:
             raise NotImplementedError()
+        comet_experiment.log_image(input_image, name="input_image_epoch{}_step{}_nr{}".format(epoch, step, i))
+        comet_experiment.log_image(prediction_image, name="prediction_image_epoch{}_step{}_nr{}".format(epoch, step, i))
+        comet_experiment.log_image(label_image, name="label_image_epoch{}_step{}_nr{}".format(epoch, step, i))
 
-        image.save(os.path.join(config.summary_dir, "image.png"))
-        label.save(os.path.join(config.summary_dir, "label.png"))
-        break
+        #image.save(os.path.join(config.summary_dir, "image.png"))
+        #label.save(os.path.join(config.summary_dir, "label.png"))
+        if(i == 3):
+            break
 
 class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
     """Callback that evaluates on validation set during training i.e. not only at end of epoch."""
 
-    def __init__(self, validate_every_n_steps, validation_dataloader, comet_experiment):
+    def __init__(self, validate_every_n_steps, validation_dataloader, comet_experiment, config):
         super(EvaluateDuringTraningCallback, self).__init__()
         self.validate_every_n_steps = validate_every_n_steps
         self.validation_dataloader = validation_dataloader
         self.comet_experiment = comet_experiment
+        self.config = config
 
     def on_epoch_begin(self, epoch, logs=None):
         self.seen = 0
+        self.current_epoch = 1
+
+    def on_epoch_end(self, epoch, logs=None):
+        self.seen = 0
+        self.current_epoch +=1
 
     def on_batch_end(self, batch, logs=None):
         logs = logs or {}
@@ -195,6 +262,66 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
             for i in range(1, len(evaluation_metrics)):
                 self.comet_experiment.log_metric("callback_validation" + self.model.metrics[i - 1].name, evaluation_metrics[i])
 
+            save_input_label_and_prediction(self.model, self.validation_dataloader, self.comet_experiment, self.config,
+                                            self.current_epoch, self.seen)
+
+def get_training_augmentations(p=0.6):
+    return A.Compose([
+        A.OneOf([
+            A.RandomRotate90(p=1),
+            A.OneOf([
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+            ]),
+            A.OneOf([
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+
+            ]),
+            A.OneOf([
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+                A.RandomRotate90(p=1),
+            ]),
+            ], p=1,
+        ),
+        A.HorizontalFlip(p=0.5),
+        A.VerticalFlip(p=0.5),
+
+        A.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
+
+        A.IAAAdditiveGaussianNoise(p=0.4),
+        A.IAAPerspective(p=0.5),
+        A.IAAEmboss(p=0.05),
+        A.Blur(p=0.1, blur_limit=3),
+        A.HueSaturationValue(p=1),
+
+        A.OneOf(
+            [
+                A.RandomBrightnessContrast(p=1),
+                A.RandomGamma(p=1),
+            ],
+            p=0.9,
+        ),
+
+        A.OneOf(
+            [
+                A.IAASharpen(p=1),
+                A.Blur(blur_limit=3, p=1),
+                A.MotionBlur(blur_limit=3, p=1),
+            ],
+            p=0.9,
+        ),
+
+
+        A.OneOf([
+            A.ElasticTransform(p=0.5, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
+            A.GridDistortion(p=0.5),
+            A.OpticalDistortion(p=1, distort_limit=2, shift_limit=0.5)
+            ])
+        ], p=0.5),
 
 if __name__ == "__main__":
     main()
