@@ -5,7 +5,14 @@ from PIL import Image
 
 
 class CreateImageSegmentationPair:
-    def __init__(self, input_folder, output_folder, boxes_threshold, level, text_file_with_annotation_names = None):
+    def __init__(
+        self,
+        input_folder,
+        output_folder,
+        boxes_threshold,
+        level,
+        text_file_with_annotation_names=None,
+    ):
         # Make some assertions about the files in the folder etc.
         assert os.path.isdir(input_folder), "The given input path has to be a directory"
         assert not os.path.isdir(
@@ -20,7 +27,7 @@ class CreateImageSegmentationPair:
 
         all_folder_elements = os.listdir(input_folder)
         annotation_folder_elements = all_folder_elements
-        if(text_file_with_annotation_names != None):
+        if text_file_with_annotation_names != None:
             annotation_folder_elements = []
             # if a text file with annotation names was given, then don't look for annotations matching a .mrxs name
             # all the elements of the input_folder, but look only at the names given by the text file.
@@ -34,9 +41,10 @@ class CreateImageSegmentationPair:
                 slide_name = os.path.splitext(element)[0]
                 found_an_annotation = False
                 for comparison_element in annotation_folder_elements:
-                    if comparison_element.startswith(
-                        slide_name
-                    ) and comparison_element.endswith("label.png"):
+                    if (
+                        "label" in comparison_element
+                        and comparison_element.split("_")[0] == slide_name
+                    ):
                         found_an_annotation = True
                         # add a tuple of the  slide name and corresponding annotation name to a list with all .mrxs slides
                         self.valid_slides_and_annotations.append(
@@ -63,15 +71,25 @@ class CreateImageSegmentationPair:
         # box on the annotation file ,and if we find that it is not white, i.e. we have some annotation, we have the correspondence
         #  of the annotation with this box and cut out both the image and annotation at this box.
 
-        for i, (slide_name, annotation_name) in enumerate(self.valid_slides_and_annotations):
-            print("We are at iteration {} of {} at slide name: {}".format(i, len(self.valid_slides_and_annotations), slide_name))
+        for i, (slide_name, annotation_name) in enumerate(
+            self.valid_slides_and_annotations
+        ):
+            print(
+                "We are at iteration {} of {} at slide name: {}".format(
+                    i, len(self.valid_slides_and_annotations), slide_name
+                )
+            )
             slide = Slide(os.path.join(self.input_folder, slide_name))
             annotation = Image.open(os.path.join(self.input_folder, annotation_name))
 
             # Find the correspondence of segmentation and the box of interest
             _ = slide.compute_boxes(intensity_threshold=self.box_threshold)
             for index, box in enumerate(slide.boxes[self.level]):
-                print("     We are at box {} out of {} boxes".format(index, len(slide.boxes[self.level])))
+                print(
+                    "     We are at box {} out of {} boxes".format(
+                        index, len(slide.boxes[self.level])
+                    )
+                )
                 cropped_annotation = annotation.crop(box)
                 # resize the cropped_annotation to save compute time and calculate the pixel distribution
                 resized_cropped_annotation = cropped_annotation.resize((100, 100))
@@ -86,10 +104,16 @@ class CreateImageSegmentationPair:
                     slide_of_interest = slide.get_region(box_of_interest, self.level)
                     annotation_of_interest = annotation.crop(box_of_interest)
                     slide_of_interest.save(
-                        os.path.join(self.output_folder, slide_name + "_{}".format(str(index)) + ".png")
+                        os.path.join(
+                            self.output_folder,
+                            slide_name + "_{}".format(str(index)) + ".png",
+                        )
                     )
                     annotation_of_interest.save(
-                        os.path.join(self.output_folder, annotation_name[:-4] + "_{}".format(str(index) + ".png"))
+                        os.path.join(
+                            self.output_folder,
+                            annotation_name[:-4] + "_{}".format(str(index) + ".png"),
+                        )
                     )
 
 
@@ -111,10 +135,14 @@ if __name__ == "__main__":
         "-a",
         "--annotation_names",
         help="Add a path to a text file that contains annotation file names. If this text file is given, the corresponding"
-             "annotation file for a .mrxs file will only be looked up from within the names given by this file.",
+        "annotation file for a .mrxs file will only be looked up from within the names given by this file.",
     )
     args = argparser.parse_args()
     dataset_creator = CreateImageSegmentationPair(
-        args.inputfolder, args.outputfolder, int(args.thresholdofbox), int(args.level), args.annotation_names
+        args.inputfolder,
+        args.outputfolder,
+        int(args.thresholdofbox),
+        int(args.level),
+        args.annotation_names,
     )
     dataset_creator.create_dataset_of_image_segmentation_pairs()
