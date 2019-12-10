@@ -1,4 +1,8 @@
-import os
+import os, sys, inspect
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+
 import argparse
 from tools.slide import Slide
 from PIL import Image
@@ -7,25 +11,26 @@ from PIL import Image
 class CreateImageSegmentationPair:
     def __init__(
         self,
-        input_folder,
+        input_slides_folder,
+        input_annotations_folder,
         output_folder,
         boxes_threshold,
         level,
         text_file_with_annotation_names=None,
     ):
         # Make some assertions about the files in the folder etc.
-        assert os.path.isdir(input_folder), "The given input path has to be a directory"
+        assert os.path.isdir(input_slides_folder), "The given input path has to be a directory"
         assert not os.path.isdir(
             output_folder
         ), "The given output path is already a directory"
 
-        self.input_folder = input_folder
+        self.input_folder = input_slides_folder
         self.output_folder = output_folder
         self.box_threshold = boxes_threshold
         self.level = level
         self.valid_slides_and_annotations = []
 
-        all_folder_elements = os.listdir(input_folder)
+        all_folder_elements = os.listdir(input_slides_folder)
         annotation_folder_elements = all_folder_elements
         if text_file_with_annotation_names != None:
             annotation_folder_elements = []
@@ -51,9 +56,8 @@ class CreateImageSegmentationPair:
                             (element, comparison_element)
                         )
                         break
-                assert (
-                    found_an_annotation
-                ), "We have not found an annotation for slide {}".format(slide_name)
+                if (not found_an_annotation):
+                    print("We have not found an annotation for {}".format(slide_name))
 
         Image.MAX_IMAGE_PIXELS = 100000000000
         # create the output folder
@@ -80,7 +84,7 @@ class CreateImageSegmentationPair:
                 )
             )
             slide = Slide(os.path.join(self.input_folder, slide_name))
-            annotation = Image.open(os.path.join(self.input_folder, annotation_name))
+            annotation = Image.open(os.path.join(self.input_annotations_folder, annotation_name))
 
             # Find the correspondence of segmentation and the box of interest
             _ = slide.compute_boxes(intensity_threshold=self.box_threshold)
@@ -119,7 +123,8 @@ class CreateImageSegmentationPair:
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
-    argparser.add_argument("-i", "--inputfolder", help="Add input folder path")
+    argparser.add_argument("-is", "--inputslidesfolder", help="Add input folder path")
+    argparser.add_argument("-ia", "--inputannotationsfolder", help="Add input folder path")
     argparser.add_argument("-o", "--outputfolder", help="Add output folder path")
     argparser.add_argument(
         "-t",
@@ -139,7 +144,8 @@ if __name__ == "__main__":
     )
     args = argparser.parse_args()
     dataset_creator = CreateImageSegmentationPair(
-        args.inputfolder,
+        args.inputslidesfolder,
+        args.inputannotationsfolder,
         args.outputfolder,
         int(args.thresholdofbox),
         int(args.level),
@@ -147,4 +153,4 @@ if __name__ == "__main__":
     )
     dataset_creator.create_dataset_of_image_segmentation_pairs()
 
-    
+
