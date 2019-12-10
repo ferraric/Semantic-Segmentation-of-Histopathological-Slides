@@ -51,9 +51,7 @@ class PatchExtractor:
                 slide_name = element.split(".mrxs")[0]
                 found_an_annotation = False
                 for comparison_element in all_folder_elements:
-                    if comparison_element.startswith(
-                            slide_name
-                    ) and "label" in comparison_element:
+                    if "label" in comparison_element and comparison_element.split("_")[0] == slide_name:
                         found_an_annotation = True
                         self.valid_slide_and_annotation_names.append(
                             (element, comparison_element)
@@ -77,7 +75,6 @@ class PatchExtractor:
             patch_number = 0
             while not self.__enough_patches(number_of_selected_patches_per_class) \
                     and consecutive_unsuccessful_iterations < self.allowed_number_of_consecutive_unsuccessful_iterations:
-                start_time = time.time()
                 top_left_corner = self.__select_random_sufficiently_spaced_top_left_corner(
                     (annotation.height, annotation.width),
                     selected_top_left_corners)
@@ -85,7 +82,7 @@ class PatchExtractor:
                 slide_patch = self.__extract_patch_from(slide, top_left_corner)
                 c = self.__determine_class_of(candidate_annotation_patch, slide_patch)
                 if self.__class_still_needed(c, number_of_selected_patches_per_class):
-                    print("patch useful")
+                    print("useful patch found, class count: ", number_of_selected_patches_per_class)
                     number_of_selected_patches_per_class[c] += 1
                     selected_top_left_corners.append(top_left_corner)
                     slide_patch.save(os.path.join(self.output_folder,
@@ -99,7 +96,6 @@ class PatchExtractor:
                     consecutive_unsuccessful_iterations = 0
                 else:
                     consecutive_unsuccessful_iterations += 1
-                print("loop iteration took: ", time.time() - start_time)
 
     def __enough_patches(self, number_of_selected_patches_per_class: Dict[int, int]) -> bool:
         for c, count in number_of_selected_patches_per_class.items():
@@ -142,7 +138,7 @@ class PatchExtractor:
         class_percentages = np.array(list(map(lambda count: count / np.sum(class_counts), class_counts)))
         if class_percentages[SPONGIOSIS] > 0.2:
             return SPONGIOSIS
-        if class_percentages[EPIDERMIS] > 0.4:
+        if class_percentages[EPIDERMIS] + class_percentages[SPONGIOSIS] > 0.4:
             return EPIDERMIS
         else:
             if self.__is_background_patch(slide_patch):
@@ -152,7 +148,7 @@ class PatchExtractor:
 
     def __is_background_patch(self, im: Image) -> bool:
         allowed_intensity_offset_from_max = 30
-        allowed_number_of_outlier_pixels_per_intensity = 2000
+        allowed_number_of_outlier_pixels_per_intensity = 1000
         number_of_pixels_per_intensity = np.array(im.convert("L").histogram())
         lowest_non_outlier_intensity = np.argmax(
             number_of_pixels_per_intensity > allowed_number_of_outlier_pixels_per_intensity)
