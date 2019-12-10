@@ -68,9 +68,9 @@ class TransferLearningDataLoader:
 
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
-        # Load image with Pillow to make sure we lod it in palette mode.
+        # Load image with Pillow to make sure we lod it in palette mode.        assert label.shape == (self.config.image_size, self.config.image_size, 1), label.shape
         label = np.expand_dims(np.array(Image.open(label_path)), -1).astype('uint8')
-        assert label.shape == (self.config.image_size, self.config.image_size, 1), label.shape
+
 
         if(is_norwegian_data):
             # somehow the anotations are loaded as 0 and 255 instead of 0 and 1, thus we just divide by 255
@@ -80,12 +80,19 @@ class TransferLearningDataLoader:
         label = tf.keras.utils.to_categorical(label, num_classes=self.config.number_of_classes)
         label = tf.dtypes.cast(label, tf.uint8)
 
-        assert img.shape[2] == 3, "image should have 3 channels but has {}".format(img.shape[2])
-        assert label.shape[2] == self.config.number_of_classes, "label should have {} channels but has {}".format(self.config.number_of_classes, label.shape[2])
+
+        if(img.shape != (self.config.image_size, self.config.image_size, 3)):
+            img = tf.image.resize(img, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR)
+            label = tf.dtypes.cast(tf.image.resize(label, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR), 'uint8')
+
+        assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
+        assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
 
         if self.augmentation:
-            img = self.augmentation(img)
-            label = self.augmentation(label)
+            data = {"image": img, "mask": label}
+            augmentations = self.augmentation[0](**data)
+            img = augmentations["image"]
+            label = augmentations["mask"]
 
         if self.preprocessing:
             img = self.preprocessing(img)
