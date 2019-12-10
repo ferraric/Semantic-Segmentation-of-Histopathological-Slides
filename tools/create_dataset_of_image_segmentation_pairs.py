@@ -96,7 +96,7 @@ class CreateImageSegmentationPair:
                 # the first channel is the white channel, the second and third indicate the blue and red color
                 color_histogram = resized_cropped_annotation.histogram()[:3]
                 red_and_blue = color_histogram[1] + color_histogram[2]
-                if red_and_blue > 0:
+                if red_and_blue > 10:
 
                     # We now know the box of interest. Let's crop the image and annotation to that box and save the resulting images.
                     # We didn't directly save the images and annotations already cropped before, because of memory
@@ -146,3 +146,5 @@ if __name__ == "__main__":
         args.annotation_names,
     )
     dataset_creator.create_dataset_of_image_segmentation_pairs()
+
+    
