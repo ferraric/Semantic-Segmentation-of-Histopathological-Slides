@@ -46,11 +46,21 @@ class CreateImageSegmentationPair:
                 slide_name = os.path.splitext(element)[0]
                 found_an_annotation = False
                 for comparison_element in annotation_folder_elements:
-                    if (
-                        "label" in comparison_element
-                        and comparison_element.split("_")[0] == slide_name
-                    ):
-                        found_an_annotation = True
+                    if("emF" in comparison_element):
+                        if (
+                            "label" in comparison_element
+                            and "emF_" + comparison_element.split("_")[1] == slide_name
+                        ):
+                            found_an_annotation = True
+
+                    else:
+                        if (
+                            "label" in comparison_element
+                            and comparison_element.split("_")[0] == slide_name
+                        ):
+                            found_an_annotation = True
+
+                    if(found_an_annotation):
                         # add a tuple of the  slide name and corresponding annotation name to a list with all .mrxs slides
                         self.valid_slides_and_annotations.append(
                             (element, comparison_element)
