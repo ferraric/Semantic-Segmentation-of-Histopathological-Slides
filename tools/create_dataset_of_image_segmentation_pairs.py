@@ -26,6 +26,7 @@ class CreateImageSegmentationPair:
 
         self.input_folder = input_slides_folder
         self.output_folder = output_folder
+        self.input_annotations_folder = input_annotations_folder
         self.box_threshold = boxes_threshold
         self.level = level
         self.valid_slides_and_annotations = []
@@ -46,10 +47,10 @@ class CreateImageSegmentationPair:
                 slide_name = os.path.splitext(element)[0]
                 found_an_annotation = False
                 for comparison_element in annotation_folder_elements:
-                    if("emF" in comparison_element):
+                    if("eMF" in comparison_element):
                         if (
                             "label" in comparison_element
-                            and "emF_" + comparison_element.split("_")[1] == slide_name
+                            and "eMF_" + comparison_element.split("_")[1] == slide_name
                         ):
                             found_an_annotation = True
 
