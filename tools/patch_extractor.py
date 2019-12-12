@@ -33,7 +33,7 @@ class PatchExtractor:
                                                     EPIDERMIS: patches_per_class[EPIDERMIS],
                                                     SPONGIOSIS: patches_per_class[SPONGIOSIS],
                                                     OTHER_TISSUE: patches_per_class[OTHER_TISSUE]}
-        self.allowed_number_of_consecutive_unsuccessful_iterations = 1000
+        self.allowed_number_of_consecutive_unsuccessful_iterations = 100000
         Image.MAX_IMAGE_PIXELS = 100000000000
 
     def extract_and_save_patch_pairs(self):
@@ -48,10 +48,25 @@ class PatchExtractor:
         all_folder_elements = [f for f in os.listdir(self.input_folder) if not f.startswith('.')]
         for element in all_folder_elements:
             if ".mrxs" in element:
+                found_comparison_element = False
                 slide_name = element.split(".mrxs")[0]
                 found_an_annotation = False
                 for comparison_element in all_folder_elements:
-                    if "label" in comparison_element and comparison_element.split("_")[0] == slide_name:
+                    if ("eMF" in comparison_element):
+                        if (
+                            "label" in comparison_element
+                            and "emF_" + comparison_element.split("_")[1] == slide_name
+                        ):
+                            found_comparison_element = True
+
+                    else:
+                        if (
+                            "label" in comparison_element
+                            and comparison_element.split("_")[0] == slide_name
+                        ):
+                            found_comparison_element = True
+
+                    if(found_comparison_element):
                         found_an_annotation = True
                         self.valid_slide_and_annotation_names.append(
                             (element, comparison_element)
