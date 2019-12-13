@@ -20,9 +20,12 @@ class CreateImageSegmentationPair:
     ):
         # Make some assertions about the files in the folder etc.
         assert os.path.isdir(input_slides_folder), "The given input path has to be a directory"
-        assert not os.path.isdir(
-            output_folder
-        ), "The given output path is already a directory"
+        #assert not os.path.isdir(
+        #    output_folder
+        #), "The given output path is already a directory"
+        if(os.path.isdir(output_folder)):
+            print("this output folder already exists")
+
 
         self.input_folder = input_slides_folder
         self.output_folder = output_folder
@@ -72,7 +75,8 @@ class CreateImageSegmentationPair:
 
         Image.MAX_IMAGE_PIXELS = 100000000000
         # create the output folder
-        os.mkdir(output_folder)
+        if(not os.path.isdir(output_folder)):
+            os.mkdir(output_folder)
 
     def create_dataset_of_image_segmentation_pairs(self):
         # Loop over all slides and do the following:
@@ -94,6 +98,22 @@ class CreateImageSegmentationPair:
                     i, len(self.valid_slides_and_annotations), slide_name
                 )
             )
+            file_exists = False
+            for file_name in os.listdir(self.output_folder):
+                if ("eMF" in file_name):
+                    if (
+                            "eMF_" + file_name.split("_")[1] == slide_name
+                    ):
+                        file_exists = True
+                else:
+                    if (
+                            file_name.split("_")[0] == slide_name
+                    ):
+                        file_exists = True
+
+            if(file_exists):
+                print("This slide name exists already...skipping")
+                continue
             slide = Slide(os.path.join(self.input_folder, slide_name))
             annotation = Image.open(os.path.join(self.input_annotations_folder, annotation_name))
 
