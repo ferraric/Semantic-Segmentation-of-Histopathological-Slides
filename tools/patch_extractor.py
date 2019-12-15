@@ -55,7 +55,7 @@ class PatchExtractor:
                     if ("eMF" in comparison_element):
                         if (
                             "label" in comparison_element
-                            and "emF_" + comparison_element.split("_")[1] == slide_name
+                            and "eMF_" + comparison_element.split("_")[1] == slide_name
                         ):
                             found_comparison_element = True
 
@@ -73,9 +73,8 @@ class PatchExtractor:
                         )
                         continue
                 assert (
-                    found_an_annotation
+                 found_an_annotation
                 ), "We have not found an annotation for slide {}".format(slide_name)
-
         for (slide_name, annotation_name) in self.valid_slide_and_annotation_names:
             print(slide_name, annotation_name)
             sample_name = slide_name.split(".mrxs")[0]
