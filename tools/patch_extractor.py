@@ -33,7 +33,7 @@ class PatchExtractor:
                                                     EPIDERMIS: patches_per_class[EPIDERMIS],
                                                     SPONGIOSIS: patches_per_class[SPONGIOSIS],
                                                     OTHER_TISSUE: patches_per_class[OTHER_TISSUE]}
-        self.allowed_number_of_consecutive_unsuccessful_iterations = 100000
+        self.allowed_number_of_consecutive_unsuccessful_iterations = 1
         Image.MAX_IMAGE_PIXELS = 100000000000
 
     def extract_and_save_patch_pairs(self):
@@ -50,12 +50,14 @@ class PatchExtractor:
             if ".mrxs" in element:
                 found_comparison_element = False
                 slide_name = element.split(".mrxs")[0]
+                slide_index = os.path.splitext(element.split(".mrxs_")[1])[0]
                 found_an_annotation = False
                 for comparison_element in all_folder_elements:
                     if ("eMF" in comparison_element):
                         if (
                             "label" in comparison_element
                             and "eMF_" + comparison_element.split("_")[1] == slide_name
+                                and os.path.splitext(comparison_element.split("_")[4])[0] == slide_index
                         ):
                             found_comparison_element = True
 
@@ -63,6 +65,7 @@ class PatchExtractor:
                         if (
                             "label" in comparison_element
                             and comparison_element.split("_")[0] == slide_name
+                            and os.path.splitext(comparison_element.split("_")[3])[0] == slide_index
                         ):
                             found_comparison_element = True
 
@@ -71,7 +74,8 @@ class PatchExtractor:
                         self.valid_slide_and_annotation_names.append(
                             (element, comparison_element)
                         )
-                        continue
+                        found_comparison_element = False
+                        break
                 assert (
                  found_an_annotation
                 ), "We have not found an annotation for slide {}".format(slide_name)
