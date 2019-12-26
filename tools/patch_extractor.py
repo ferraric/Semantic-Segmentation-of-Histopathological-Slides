@@ -82,7 +82,7 @@ class PatchExtractor:
                 ), "We have not found an annotation for slide {}".format(slide_name)
         for (slide_name, annotation_name) in self.valid_slide_and_annotation_names:
             logging.warning(slide_name, annotation_name)
-            sample_name = slide_name.split(".mrxs")[0]
+            sample_name = slide_name.split(".mrxs")[0] + os.path.splitext(slide_name.split(".mrxs")[1])[0]
             number_of_selected_patches_per_class = {BACKGROUND: 0,
                                                     EPIDERMIS: 0,
                                                     SPONGIOSIS: 0,
