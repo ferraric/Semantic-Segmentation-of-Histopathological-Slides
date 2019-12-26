@@ -18,19 +18,19 @@ class StackedUNetModel(Model):
 
         # first Unet
         self.conv11_1 = Conv2D(64, (3, 3), activation='relu', padding='same')
-        self.conv12_1 = Conv2D(64, (3, 3), activation='relu', padding='same')
+        self.conv12_1 = Conv2D(64, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool1_1 = MaxPooling2D((2, 2), strides=2)
 
         self.conv21_1 = Conv2D(128, (3, 3), activation='relu', padding='same')
-        self.conv22_1 = Conv2D(128, (3, 3), activation='relu', padding='same')
+        self.conv22_1 = Conv2D(128, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool2_1 = MaxPooling2D((2, 2), strides=2)
 
         self.conv31_1 = Conv2D(256, (3, 3), activation='relu', padding='same')
-        self.conv32_1 = Conv2D(256, (3, 3), activation='relu', padding='same')
+        self.conv32_1 = Conv2D(256, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool3_1 = MaxPooling2D((2, 2), strides=2)
 
         self.conv41_1 = Conv2D(512, (3, 3), activation='relu', padding='same')
-        self.conv42_1 = Conv2D(512, (3, 3), activation='relu', padding='same')
+        self.conv42_1 = Conv2D(512, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.drop4_1 = Dropout(0.5)  # Not in Paper, but is in code
         self.pool4_1 = MaxPooling2D((2, 2), strides=2)
 
@@ -62,19 +62,19 @@ class StackedUNetModel(Model):
 
         # second Unet
         self.conv11_2 = Conv2D(64, (3, 3), activation='relu', padding='same')
-        self.conv12_2 = Conv2D(64, (3, 3), activation='relu', padding='same')
+        self.conv12_2 = Conv2D(64, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool1_2 = MaxPooling2D((2, 2), strides=2)
 
         self.conv21_2 = Conv2D(128, (3, 3), activation='relu', padding='same')
-        self.conv22_2 = Conv2D(128, (3, 3), activation='relu', padding='same')
+        self.conv22_2 = Conv2D(128, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool2_2 = MaxPooling2D((2, 2), strides=2)
 
         self.conv31_2 = Conv2D(256, (3, 3), activation='relu', padding='same')
-        self.conv32_2 = Conv2D(256, (3, 3), activation='relu', padding='same')
+        self.conv32_2 = Conv2D(256, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.pool3_2 = MaxPooling2D((2, 2), strides=2)
 
         self.conv41_2 = Conv2D(512, (3, 3), activation='relu', padding='same')
-        self.conv42_2 = Conv2D(512, (3, 3), activation='relu', padding='same')
+        self.conv42_2 = Conv2D(512, (3, 3), activation='relu', padding='same', dilation_rate=2)
         self.drop4_2 = Dropout(0.5)  # Not in Paper, but is in code
         self.pool4_2 = MaxPooling2D((2, 2), strides=2)
 
