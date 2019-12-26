@@ -101,7 +101,7 @@ class PatchExtractor:
                 slide_patch = self.__extract_patch_from(slide, top_left_corner)
                 c = self.__determine_class_of(candidate_annotation_patch, slide_patch)
                 if self.__class_still_needed(c, number_of_selected_patches_per_class):
-                    logging.warning("useful patch found, class count: ", number_of_selected_patches_per_class)
+                    print("useful patch found, class count: ", number_of_selected_patches_per_class)
                     number_of_selected_patches_per_class[c] += 1
                     selected_top_left_corners.append(top_left_corner)
                     slide_patch.save(os.path.join(self.output_folder,
