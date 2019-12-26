@@ -25,7 +25,7 @@ class TransferLearningUnetModel():
     def build_model(self):
         print("We use a {} model with the backbone {}".format(self.model_type, self.config.backbone))
         if(self.model_type == "unet"):
-            self.model = sm.Unet(backbone_name=self.config.backbone, input_shape=(self.config.image_size, self.config.image_size,
+            self.model = sm.Unet(backbone_name=self.config.backbone, input_shape=(None, None,
                                                                                   3),
                                  classes=self.config.number_of_classes,
                                  activation=self.activation,

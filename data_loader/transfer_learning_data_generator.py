@@ -7,10 +7,10 @@ from PIL import Image
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 class TransferLearningDataLoader:
-    def __init__(self, config, validation=False, preprocessing=None, augmentation=None):
-        self.augmentation = augmentation
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
         self.preprocessing = preprocessing
         self.config = config
+        self.use_image_augmentations = use_image_augmentations
         if(validation):
             dataset_path = config.validation_dataset_path
         else:
@@ -88,11 +88,18 @@ class TransferLearningDataLoader:
         assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
         assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
 
-        if self.augmentation:
-            data = {"image": img, "mask": label}
-            augmentations = self.augmentation[0](**data)
-            img = augmentations["image"]
-            label = augmentations["mask"]
+
+        if self.use_image_augmentations:
+            n_rotations = np.random.choice(4)
+            img = tf.image.rot90(img, n_rotations)
+            label = tf.image.rot90(label, n_rotations)
+
+            if(np.random.rand(1) > 0.5):
+                img = tf.image.flip_left_right(img)
+                label = tf.image.flip_left_right(label)
+            if (np.random.rand(1) > 0.5):
+                img = tf.image.flip_up_down(img)
+                label = tf.image.flip_up_down(label)
 
         if self.preprocessing:
             img = self.preprocessing(img)
@@ -105,10 +112,10 @@ class TransferLearningDataLoader:
         return images, labels
 
 class NorwayTransferLearningDataLoader(TransferLearningDataLoader):
-    def __init__(self, config, validation=False, preprocessing=None, augmentation=None):
-        self.augmentation = augmentation
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
         self.preprocessing = preprocessing
         self.config = config
+        self.use_image_augmentations = use_image_augmentations
         if(validation):
             dataset_path = config.validation_dataset_path
             print("Validating on the path {}".format(dataset_path))
