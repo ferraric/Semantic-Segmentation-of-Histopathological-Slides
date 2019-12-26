@@ -34,7 +34,7 @@ class PatchExtractor:
                                                     EPIDERMIS: patches_per_class[EPIDERMIS],
                                                     SPONGIOSIS: patches_per_class[SPONGIOSIS],
                                                     OTHER_TISSUE: patches_per_class[OTHER_TISSUE]}
-        self.allowed_number_of_consecutive_unsuccessful_iterations = 1
+        self.allowed_number_of_consecutive_unsuccessful_iterations = 20000
         Image.MAX_IMAGE_PIXELS = 100000000000
 
     def extract_and_save_patch_pairs(self):
@@ -203,7 +203,7 @@ if __name__ == "__main__":
                            default=200)
     argparser.add_argument("-nppc", "--patches_per_class",
                            help="desired number of patches per class in form n_background n_epidermis n_spongiosis n_other",
-                           nargs=4, type=int, default=[10, 10, 10, 10])
+                           nargs=4, type=int, default=[200, 300, 300, 200])
     args = argparser.parse_args()
     patch_extractor = PatchExtractor(args.inputfolder, args.outputfolder, args.patch_size, args.min_distance,
                                      args.patches_per_class)
