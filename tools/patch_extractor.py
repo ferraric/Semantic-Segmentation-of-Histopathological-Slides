@@ -4,6 +4,7 @@ import random
 import argparse
 import os
 import time
+import logging
 
 from PIL import Image
 from typing import Tuple, List, Dict
@@ -80,7 +81,7 @@ class PatchExtractor:
                  found_an_annotation
                 ), "We have not found an annotation for slide {}".format(slide_name)
         for (slide_name, annotation_name) in self.valid_slide_and_annotation_names:
-            print(slide_name, annotation_name)
+            logging.warning(slide_name, annotation_name)
             sample_name = slide_name.split(".mrxs")[0]
             number_of_selected_patches_per_class = {BACKGROUND: 0,
                                                     EPIDERMIS: 0,
@@ -100,7 +101,7 @@ class PatchExtractor:
                 slide_patch = self.__extract_patch_from(slide, top_left_corner)
                 c = self.__determine_class_of(candidate_annotation_patch, slide_patch)
                 if self.__class_still_needed(c, number_of_selected_patches_per_class):
-                    print("useful patch found, class count: ", number_of_selected_patches_per_class)
+                    logging.warning("useful patch found, class count: ", number_of_selected_patches_per_class)
                     number_of_selected_patches_per_class[c] += 1
                     selected_top_left_corners.append(top_left_corner)
                     slide_patch.save(os.path.join(self.output_folder,
