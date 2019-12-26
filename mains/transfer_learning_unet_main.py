@@ -5,7 +5,6 @@ import random
 import os,sys,inspect
 import numpy as np
 from PIL import Image
-import albumentations as A
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -76,7 +75,7 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations(p=0.6),
+                use_image_augmentations=True
             )
         else:
             print("not using any image augmentations")
@@ -84,11 +83,13 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
+                use_image_augmentations=False
             )
         validation_dataloader = NorwayTransferLearningDataLoader(
             config,
             validation=True,
-            preprocessing=backbone_preprocessing
+            preprocessing=backbone_preprocessing,
+            use_image_augmentations=False
         )
     else:
         print("using our dataset")
@@ -98,7 +99,7 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
-                augmentation=get_training_augmentations(p=0.6),
+                use_image_augmentations=True
             )
         else:
             print("not using any imgae augmentations")
@@ -106,12 +107,14 @@ def main():
                 config,
                 validation=False,
                 preprocessing=backbone_preprocessing,
+                use_image_augmentations=False
             )
             
         validation_dataloader = TransferLearningDataLoader(
             config,
             validation=True,
-            preprocessing=backbone_preprocessing
+            preprocessing=backbone_preprocessing,
+            use_image_augmentations=False
         )
 
     #print the model summary and save it into the output folder
@@ -156,17 +159,31 @@ def main():
     else:
         print("Running model for {} classes not supported".format(config.number_of_classes))
 
+    if (config.save_model):
+        checkpoint_path = config.checkpoint_dir + "{epoch:02d}-{val_loss:.2f}.hdf5"
+        save_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                           monitor='val_binary_accuracy',
+                                                           save_best_only=True,
+                                                           save_weights_only=False,
+                                                           save_freq='epoch',
+                                                           verbose=1)
+        callback = [save_callback]
+        metrics = [precision, recall, accuracy]
+    else:
+        callback = [EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps,
+                                                  validation_dataloader=validation_dataloader,
+                                                  comet_experiment=experiment, config=config)]
+        metrics = [precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
 
     model.compile(
         optimizer=optimizer,
         loss=loss,
-        metrics=[precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
+        metrics=metrics
     )
 
     model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader), validation_data=validation_dataloader.dataset,
               validation_steps=len(validation_dataloader),
-              callbacks=[EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps, validation_dataloader=validation_dataloader,
-                                                       comet_experiment=experiment, config=config)],
+              callbacks=callback,
               use_multiprocessing=False)
 
 
@@ -264,64 +281,6 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
 
             save_input_label_and_prediction(self.model, self.validation_dataloader, self.comet_experiment, self.config,
                                             self.current_epoch, self.seen)
-
-def get_training_augmentations(p=0.6):
-    return A.Compose([
-        A.OneOf([
-            A.RandomRotate90(p=1),
-            A.OneOf([
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-            ]),
-            A.OneOf([
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-
-            ]),
-            A.OneOf([
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-                A.RandomRotate90(p=1),
-            ]),
-            ], p=1,
-        ),
-        A.HorizontalFlip(p=0.5),
-        A.VerticalFlip(p=0.5),
-
-        A.ShiftScaleRotate(scale_limit=0.5, rotate_limit=0, shift_limit=0.1, p=1, border_mode=0),
-
-        A.IAAAdditiveGaussianNoise(p=0.4),
-        A.IAAPerspective(p=0.5),
-        A.IAAEmboss(p=0.05),
-        A.Blur(p=0.1, blur_limit=3),
-        A.HueSaturationValue(p=1),
-
-        A.OneOf(
-            [
-                A.RandomBrightnessContrast(p=1),
-                A.RandomGamma(p=1),
-            ],
-            p=0.9,
-        ),
-
-        A.OneOf(
-            [
-                A.IAASharpen(p=1),
-                A.Blur(blur_limit=3, p=1),
-                A.MotionBlur(blur_limit=3, p=1),
-            ],
-            p=0.9,
-        ),
-
-
-        A.OneOf([
-            A.ElasticTransform(p=0.5, alpha=120, sigma=120 * 0.05, alpha_affine=120 * 0.03),
-            A.GridDistortion(p=0.5),
-            A.OpticalDistortion(p=1, distort_limit=2, shift_limit=0.5)
-            ])
-        ], p=0.5),
 
 if __name__ == "__main__":
     main()
