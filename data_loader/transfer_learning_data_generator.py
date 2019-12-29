@@ -52,7 +52,10 @@ class TransferLearningDataLoader:
                 slide_number = slide_name.split(".")[0]
                 slide_index = slide_name.split("_")[-3]
                 annotation_name = os.path.split(self.annotation_paths[i])[1]
-                annoation_number = annotation_name.split(".")[0]
+                if("eMF" in annoation_number):
+                    annoation_number = "eMF_" + annotation_name.split("_")[1]
+                else:
+                    annoation_number = annotation_name.split("_")[0]
                 annotation_index = annotation_name.split("_")[-3]
                 assert slide_number == annoation_number, "{} and {}".format(slide_number, annoation_number)
                 assert slide_index == annotation_index, "{} and {}".format(slide_index, annotation_index)
