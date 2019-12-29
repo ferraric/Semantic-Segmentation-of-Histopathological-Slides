@@ -69,7 +69,7 @@ def create_test_data(test_image_folder, test_annotation_folder, output_slices_fo
         image_slicer.save_tiles(image_tiles, directory=output_slide_folder, \
                                 prefix=os.path.splitext(test_image)[0], format='png')
         image_slicer.save_tiles(annotation_tiles, directory=output_annotation_folder, \
-                                prefix=os.path.splitext(test_image)[0], format='png')
+                                prefix=os.path.splitext(annotation_file)[0], format='png')
 
 
 if __name__ == '__main__':
