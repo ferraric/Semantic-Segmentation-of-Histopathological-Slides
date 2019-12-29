@@ -1,0 +1,16 @@
+'eMF_10_annekatrin.zimmermann_labels.png',
+'eMF_39_annekatrin.zimmermann_labels.png',
+'eMF_28_annekatrin.zimmermann_labels.png',
+'eMF_5_annekatrin.zimmermann_labels.png',
+'eMF_17_annekatrin.zimmermann_labels.png',
+'eMF_18_annekatrin.zimmermann_labels.png',
+'eMF_37_annekatrin.zimmermann_labels.png',
+'eMF_36_annekatrin.zimmermann_labels.png'
+'E23_annekatrin.zimmermann_labels.png',
+'E56_annekatrin.zimmermann_labels.png',
+'E35_annekatrin.zimmermann_labels.png',
+'E82_annekatrin.zimmermann_labels.png',
+'E62_annekatrin.zimmermann_labels.png',
+'E36_annekatrin.zimmermann_labels.png',
+'E54_annekatrin.zimmermann_labels.png',
+'E88_annekatrin.zimmermann_labels.png'
