@@ -9,10 +9,10 @@ class BaseTrain:
         self.data = data
 
         assert (
-            "num_epochs" in self.config
+                "num_epochs" in self.config
         ), "You need to define the parameter 'num_epochs' in your config file."
         assert (
-            "validate_every_x_batches" in self.config
+                "validate_every_x_batches" in self.config
         ), "You need to define the parameter 'validate_every_x_batches' in your config file."
 
         # Add hyperparameters of config file to Comet Logger
@@ -22,6 +22,7 @@ class BaseTrain:
 
     def train(self):
         for cur_epoch in range(self.config.num_epochs):
+            print("epoch number: ", cur_epoch)
             self.current_epoch = cur_epoch
             self.train_epoch()
 
