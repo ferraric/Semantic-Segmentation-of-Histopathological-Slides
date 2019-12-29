@@ -27,7 +27,7 @@ class TransferLearningDataLoader:
             for file in all_files:
                 if "mrxs" in file:
                     self.slide_paths.append(os.path.join(dataset_path, file))
-                elif "annotation" in file:
+                elif "labels" in file:
                     self.annotation_paths.append(os.path.join(dataset_path, file))
 
         else:
