@@ -1,11 +1,16 @@
 # resizing to nearest power of 2 is taken from https://gist.github.com/RandomEtc/241411
 # image slicing is taken from https://github.com/samdobson/image_slicer
-from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
-
 import argparse
-import os
+import os, sys, inspect
 from PIL import Image
 import math
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
+
+from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
+
 
 
 def create_test_data(test_image_folder, test_annotation_folder, output_slices_folder, new_size, file_with_slide_names):
