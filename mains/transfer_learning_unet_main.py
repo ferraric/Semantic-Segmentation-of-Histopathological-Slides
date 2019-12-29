@@ -189,24 +189,24 @@ def main():
 
 def save_input_label_and_prediction(model, validation_dataloader, comet_experiment, config, epoch, step):
     for i, data in enumerate(validation_dataloader.dataset):
-        assert data[0][0].numpy().shape == (config.image_size, config.image_size, 3), data[0][0].numpy().shape
-        assert data[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), data[1][0].numpy().shape
+        #assert data[0][0].numpy().shape == (config.image_size, config.image_size, 3), data[0][0].numpy().shape
+        #assert data[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), data[1][0].numpy().shape
         input = data[0][:1] #keep batch dimensions
         label = data[1][0]
         np.save(os.path.join(config.summary_dir, "image.npy"), input.numpy())
         np.save(os.path.join(config.summary_dir, "label.npy"), label.numpy())
 
         input_np = input[0].numpy().astype('uint8')
-        assert input_np.shape == (config.image_size, config.image_size, 3), input_np.shape
+        #assert input_np.shape == (config.image_size, config.image_size, 3), input_np.shape
         input_image = Image.fromarray(input_np, 'RGB')
 
         prediction = model.predict(input)
         prediction_np = np.argmax(prediction[0], axis=-1).astype('uint8')
-        assert prediction_np.shape == (config.image_size, config.image_size), prediction_np.shape
+        #assert prediction_np.shape == (config.image_size, config.image_size), prediction_np.shape
         prediction_image = Image.fromarray(prediction_np, "P")
 
         np_label = np.argmax(label.numpy(), -1).astype('uint8')
-        assert np_label.shape == (config.image_size, config.image_size), np_label.shape
+        #assert np_label.shape == (config.image_size, config.image_size), np_label.shape
         label_image = Image.fromarray(np_label, 'P')
 
 
