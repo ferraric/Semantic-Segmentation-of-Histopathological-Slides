@@ -49,7 +49,7 @@ class TransferLearningDataLoader:
         if(validation):
             for i, slide_path in enumerate(self.slide_paths):
                 slide_name = os.path.split(slide_path)[1]
-                slide_number = slide_name.slit(".")[0]
+                slide_number = slide_name.split(".")[0]
                 slide_index = slide_name.split("_")[-3]
                 annotation_name = os.path.split(self.annotation_paths[i])[1]
                 annoation_number = annotation_name.split(".")[0]
