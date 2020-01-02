@@ -137,13 +137,12 @@ def main():
 
     # Define metrics and losses
     ###########################
-    precision = tf_keras_metrics.Precision() # positive predictive value in the paper
-    recall = tf_keras_metrics.Recall() # equivalent to sensitivity in the norway paper
-
     if(config.number_of_classes == 2):
         print("Doing binary classification")
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
+        precision = tf_keras_metrics.Precision()  # positive predictive value in the paper
+        recall = tf_keras_metrics.Recall()  # equivalent to sensitivity in the norway paper
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
         f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
         matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
@@ -151,7 +150,7 @@ def main():
     elif(config.number_of_classes > 2):
         print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
-        accuracy = tf_keras_metrics.categorical_accuracy
+        accuracy = tf_keras_metrics.CategoricalAccuracy()
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
         f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
         matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
@@ -173,7 +172,7 @@ def main():
         callback = [EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps,
                                                   validation_dataloader=validation_dataloader,
                                                   comet_experiment=experiment, config=config)]
-        metrics = [precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
+        metrics = [f1_score, accuracy, mean_iou_with_argmax]
 
     model.compile(
         optimizer=optimizer,
