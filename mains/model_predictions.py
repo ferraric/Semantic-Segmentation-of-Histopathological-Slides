@@ -1,3 +1,4 @@
+from comet_ml import Experiment
 import tensorflow as tf
 import argparse
 import os, sys, inspect
@@ -5,6 +6,8 @@ import numpy as np
 import math
 import logging
 from PIL import Image
+import json
+
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
@@ -15,7 +18,16 @@ import tensorflow.keras.losses as tf_keras_losses
 import segmentation_models as sm
 from utils.config import process_config
 import efficientnet.tfkeras
+from tensorflow.keras.metrics import MeanIoU, Precision, Recall
 
+from models.unet import UNetModel
+
+
+class UpdateConfig(tf.keras.callbacks.Callback):
+    def on_epoch_end(self, epoch, logs=None):
+        config = process_config("configs/unet.json")
+        config.model_save_epoch += 1
+        json.dump(config, open("configs/unet.json", "w"), indent=2)
 
 class PfalzTestdataLoader:
     def __init__(self, config, evaluation_folder_inputs, evaluation_folder_labels):
@@ -74,9 +86,11 @@ class PfalzTestdataLoader:
         # Load image with Pillow to make sure we lod it in palette mode.        assert label.shape == (self.config.image_size, self.config.image_size, 1), label.shape
         label = np.expand_dims(np.array(Image.open(label_path)), -1).astype('uint8')
 
-        if(is_norwegian_data):
+        if(True):
+
             # somehow the anotations are loaded as 0 and 255 instead of 0 and 1, thus we just divide by 255
-            if np.all(np.unique(label) == [0, 255]):
+            #if np.all(np.unique(label) == [0, 255]):
+            if np.all(np.isin(255, np.unique(label)) ):
                 label = np.divide(label, 255)
 
         assert label.shape[2] == 1, "label should have 1 channel but has {}".format(label.shape[2])
@@ -84,10 +98,10 @@ class PfalzTestdataLoader:
         label = tf.dtypes.cast(label, tf.uint8)
 
 
-        assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
-        assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
+        #assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
+        #assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
 
-        img = self.preprocessing(img)
+        #img = self.preprocessing(img)
 
         return img, label
 
@@ -100,7 +114,7 @@ class PfalzTestdataLoader:
 class NorwayTestDataLoader(PfalzTestdataLoader):
     def __init__(self, config, evaluation_folder_inputs, evaluation_folder_labels):
         self.config = config
-        self.preprocessing = sm.get_preprocessing(config.backbone)
+        #self.preprocessing = sm.get_preprocessing(config.backbone)
 
         self.slide_paths = []
         self.annotation_paths = []
@@ -156,7 +170,7 @@ def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_
 
     number_of_test_images = 0
 
-    if(config.norway_dataset):
+    if(True):
         test_data_set_loader = NorwayTestDataLoader(config, evaluation_folder_inputs, evaluation_folder_labels)
     else:
         test_data_set_loader = PfalzTestdataLoader(config, evaluation_folder_inputs, evaluation_folder_labels)
@@ -229,6 +243,8 @@ def save_input_label_and_prediction(input, label, prediction, config, output_fol
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
+    argparser.add_argument("-ti", "--train_folder_inputs", help="Add folder with images you want to train on")
+    argparser.add_argument("-tl", "--train_folder_labels", help="Add folder with ground truth labels for training")
     argparser.add_argument("-ei", "--evaluation_folder_inputs", help="Add folder with images you want to evaluate on")
     argparser.add_argument("-el", "--evaluation_folder_labels", help="Add folder with ground truth labels")
     argparser.add_argument("-m", "--model_to_load", help="Add folder with the model you want to load")
@@ -238,5 +254,47 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     config = process_config(args.config)
-    loaded_model = tf.keras.models.load_model(args.model_to_load, compile=False)
+
+    experiment = Experiment(
+        api_key=config.comet_api_key,
+        project_name=config.comet_project_name,
+        workspace=config.comet_workspace,
+    )
+
+
+    data = NorwayTestDataLoader(config, args.train_folder_inputs, args.train_folder_labels)
+
+    model = UNetModel(config)
+    model.compile(
+        optimizer=config.optimizer,
+        loss='categorical_crossentropy',
+        metrics=[MeanIoU(2)]
+    )
+
+
+    #model.build((None, 4096, 4096, 3))
+    checkpoint_path = config.model_save_path + "cp.ckpt"
+
+    cp_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
+                                                 save_weights_only=True,
+                                                 verbose=1)
+    data.dataset = data.dataset.shuffle(
+        buffer_size=config.shuffle_buffer_size
+    )
+
+
+    if config.model_save_epoch > 0:
+        model.load_weights(checkpoint_path)
+
+    if config.model_save_epoch < config.num_epochs:
+            model.fit(data.dataset, 
+                      epochs= config.num_epochs - config.model_save_epoch, 
+                      verbose=1, class_weight={0:50, 1:1},
+                      callbacks=[cp_callback, UpdateConfig()] )
+
+    loaded_model = model
+
+
     evaluate_model_on_images(loaded_model, args.evaluation_folder_inputs, args.evaluation_folder_labels, config, args.output_folder)
+
+
