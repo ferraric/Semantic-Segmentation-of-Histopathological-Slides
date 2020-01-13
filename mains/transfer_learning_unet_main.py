@@ -126,7 +126,7 @@ def main():
     experiment.log_asset(model_architecture_path)
     experiment.log_asset(args.config)
 
-    save_input_label_and_prediction(model, validation_dataloader, experiment, config, 0, 0)
+    #save_input_label_and_prediction(model, validation_dataloader, experiment, config, 0, 0)
 
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=config.learning_rate,
@@ -137,13 +137,12 @@ def main():
 
     # Define metrics and losses
     ###########################
-    precision = tf_keras_metrics.Precision() # positive predictive value in the paper
-    recall = tf_keras_metrics.Recall() # equivalent to sensitivity in the norway paper
-
     if(config.number_of_classes == 2):
         print("Doing binary classification")
         loss = tf_keras_losses.binary_crossentropy
         accuracy = tf_keras_metrics.binary_accuracy
+        precision = tf_keras_metrics.Precision()  # positive predictive value in the paper
+        recall = tf_keras_metrics.Recall()  # equivalent to sensitivity in the norway paper
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=2)
         f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
         matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
@@ -151,7 +150,7 @@ def main():
     elif(config.number_of_classes > 2):
         print("Doing classification with {} classes".format(config.number_of_classes))
         loss = tf_keras_losses.categorical_crossentropy
-        accuracy = tf_keras_metrics.categorical_accuracy
+        accuracy = tf_keras_metrics.CategoricalAccuracy()
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
         f1_score = F1Score(num_classes=config.number_of_classes, average='micro')  # dice similarity is equivalent to f1 score
         matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
@@ -162,18 +161,18 @@ def main():
     if (config.save_model):
         checkpoint_path = config.checkpoint_dir + "{epoch:02d}-{val_loss:.2f}.hdf5"
         save_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                           monitor='val_binary_accuracy',
+                                                           monitor='val_loss',
                                                            save_best_only=True,
                                                            save_weights_only=False,
                                                            save_freq='epoch',
                                                            verbose=1)
         callback = [save_callback]
-        metrics = [precision, recall, accuracy]
+        metrics = [f1_score, mean_iou_with_argmax, accuracy]
     else:
         callback = [EvaluateDuringTraningCallback(validate_every_n_steps=config.validate_every_n_steps,
                                                   validation_dataloader=validation_dataloader,
                                                   comet_experiment=experiment, config=config)]
-        metrics = [precision, recall, f1_score, matthews_corelation_coefficient, accuracy, mean_iou_with_argmax]
+        metrics = [f1_score, accuracy, mean_iou_with_argmax]
 
     model.compile(
         optimizer=optimizer,
@@ -189,24 +188,24 @@ def main():
 
 def save_input_label_and_prediction(model, validation_dataloader, comet_experiment, config, epoch, step):
     for i, data in enumerate(validation_dataloader.dataset):
-        assert data[0][0].numpy().shape == (config.image_size, config.image_size, 3), data[0][0].numpy().shape
-        assert data[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), data[1][0].numpy().shape
+        #assert data[0][0].numpy().shape == (config.image_size, config.image_size, 3), data[0][0].numpy().shape
+        #assert data[1][0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), data[1][0].numpy().shape
         input = data[0][:1] #keep batch dimensions
         label = data[1][0]
         np.save(os.path.join(config.summary_dir, "image.npy"), input.numpy())
         np.save(os.path.join(config.summary_dir, "label.npy"), label.numpy())
 
         input_np = input[0].numpy().astype('uint8')
-        assert input_np.shape == (config.image_size, config.image_size, 3), input_np.shape
+        #assert input_np.shape == (config.image_size, config.image_size, 3), input_np.shape
         input_image = Image.fromarray(input_np, 'RGB')
 
         prediction = model.predict(input)
         prediction_np = np.argmax(prediction[0], axis=-1).astype('uint8')
-        assert prediction_np.shape == (config.image_size, config.image_size), prediction_np.shape
+        #assert prediction_np.shape == (config.image_size, config.image_size), prediction_np.shape
         prediction_image = Image.fromarray(prediction_np, "P")
 
         np_label = np.argmax(label.numpy(), -1).astype('uint8')
-        assert np_label.shape == (config.image_size, config.image_size), np_label.shape
+        #assert np_label.shape == (config.image_size, config.image_size), np_label.shape
         label_image = Image.fromarray(np_label, 'P')
 
 
@@ -279,8 +278,8 @@ class EvaluateDuringTraningCallback(tf.keras.callbacks.Callback):
             for i in range(1, len(evaluation_metrics)):
                 self.comet_experiment.log_metric("callback_validation" + self.model.metrics[i - 1].name, evaluation_metrics[i])
 
-            save_input_label_and_prediction(self.model, self.validation_dataloader, self.comet_experiment, self.config,
-                                            self.current_epoch, self.seen)
+            #save_input_label_and_prediction(self.model, self.validation_dataloader, self.comet_experiment, self.config,
+            #                                self.current_epoch, self.seen)
 
 if __name__ == "__main__":
     main()
