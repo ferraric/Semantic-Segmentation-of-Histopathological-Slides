@@ -11,20 +11,31 @@ class TransferLearningDataLoader:
         self.preprocessing = preprocessing
         self.config = config
         self.use_image_augmentations = use_image_augmentations
-        if(validation):
+        if (validation):
             dataset_path = config.validation_dataset_path
+            print("Validating on the path {}".format(dataset_path))
+
         else:
             dataset_path = config.train_dataset_path
+            print("Training on the path {}".format(dataset_path))
 
         # create list of image and annotation paths
         all_files = os.listdir(dataset_path)
         self.slide_paths = []
         self.annotation_paths = []
-        for file in all_files:
-            if "slide" in file:
-                self.slide_paths.append(os.path.join(dataset_path, file))
-            elif "annotation" in file:
-                self.annotation_paths.append(os.path.join(dataset_path, file))
+        if(validation):
+            for file in all_files:
+                if "slide" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "annotation" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
+
+        else:
+            for file in all_files:
+                if "slide" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "annotation" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
 
         self.slide_paths.sort()
         self.annotation_paths.sort()
@@ -35,15 +46,34 @@ class TransferLearningDataLoader:
             "The slide count is {} and the annotation count is {}, but they should be"
             " equal".format(self.image_count, annotation_count)
         )
-        for i, slide_path in enumerate(self.slide_paths):
-            slide_name = os.path.split(slide_path)[1]
-            annotation_name = os.path.split(self.annotation_paths[i])[1]
-            assert slide_name.replace("slide", "") == annotation_name.replace(
-                "annotation", ""
-            ), (
-                "Path names of slide {} and annotation {}"
-                "do not match".format(slide_name, annotation_name)
-            )
+        if(validation):
+            for i, slide_path in enumerate(self.slide_paths):
+                slide_name = os.path.split(slide_path)[1]
+                slide_number = slide_name.split(".")[0]
+                slide_index = slide_name.split("_")[-3]
+                annotation_name = os.path.split(self.annotation_paths[i])[1]
+                if("eMF" in annotation_name):
+                    annoation_number = "eMF_" + annotation_name.split("_")[1]
+                else:
+                    annoation_number = annotation_name.split("_")[0]
+                annotation_index = annotation_name.split("_")[-3]
+                #assert slide_number == annoation_number, "{} and {}".format(slide_number, annoation_number)
+                #assert slide_index == annotation_index, "{} and {}".format(slide_index, annotation_index)
+                #assert slide_name.split("_")[-1] == annotation_name.split("_")[-1], "{} and {}".format(slide_name.split("_")[-1], annotation_name.split("_")[-1])
+                #assert slide_name.split("_")[-2] == annotation_name.split("_")[-2], "{} and {}".format(
+                #    slide_name.split("_")[-2], annotation_name.split("_")[-2])
+                assert slide_name.replace("slide", "") == annotation_name.replace("annotation", "")
+        else:
+
+            for i, slide_path in enumerate(self.slide_paths):
+                slide_name = os.path.split(slide_path)[1]
+                annotation_name = os.path.split(self.annotation_paths[i])[1]
+                assert slide_name.replace("slide", "") == annotation_name.replace(
+                    "annotation", ""
+                ), (
+                    "Path names of slide {} and annotation {}"
+                    "do not match".format(slide_name, annotation_name)
+                )
 
         print("We found {} images and annotations".format(self.image_count))
 
@@ -58,6 +88,7 @@ class TransferLearningDataLoader:
             self.dataset = dataset.repeat(-1).batch(self.config.batch_size, drop_remainder=True)
         else:
             self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+
 
     def __len__(self):
         return math.ceil(self.image_count / self.config.batch_size)
@@ -81,12 +112,12 @@ class TransferLearningDataLoader:
         label = tf.dtypes.cast(label, tf.uint8)
 
 
-        if(img.shape != (self.config.image_size, self.config.image_size, 3)):
-            img = tf.image.resize(img, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR)
-            label = tf.dtypes.cast(tf.image.resize(label, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR), 'uint8')
+        #if(img.shape != (self.config.image_size, self.config.image_size, 3)):
+        #    img = tf.image.resize(img, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR)
+        #    label = tf.dtypes.cast(tf.image.resize(label, (self.config.image_size, self.config.image_size), method=tf.image.ResizeMethod.BILINEAR), 'uint8')
 
-        assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
-        assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
+        #assert img.shape == (self.config.image_size, self.config.image_size, 3), img.shape
+        #assert label.shape == (self.config.image_size, self.config.image_size, self.config.number_of_classes), label.shape
 
 
         if self.use_image_augmentations:
