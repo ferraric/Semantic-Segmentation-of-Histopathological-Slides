@@ -7,7 +7,7 @@ from PIL import Image
 AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
-class DilatedFcnDataLoader:
+class UnetDataLoader:
     def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
         self.use_image_augmentations = use_image_augmentations
         self.preprocessing = preprocessing
@@ -112,7 +112,7 @@ class DilatedFcnDataLoader:
         return images, labels
 
 
-class NorwayDilatedFcnDataLoader(DilatedFcnDataLoader):
+class NorwayUnetDataLoader(UnetDataLoader):
     def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
         self.use_image_augmentations = use_image_augmentations
         self.preprocessing = preprocessing

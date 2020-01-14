@@ -4,6 +4,7 @@ import random
 import argparse
 import os
 import time
+import logging
 
 from PIL import Image
 from typing import Tuple, List, Dict
@@ -33,7 +34,7 @@ class PatchExtractor:
                                                     EPIDERMIS: patches_per_class[EPIDERMIS],
                                                     SPONGIOSIS: patches_per_class[SPONGIOSIS],
                                                     OTHER_TISSUE: patches_per_class[OTHER_TISSUE]}
-        self.allowed_number_of_consecutive_unsuccessful_iterations = 1000
+        self.allowed_number_of_consecutive_unsuccessful_iterations = 4000
         Image.MAX_IMAGE_PIXELS = 100000000000
 
     def extract_and_save_patch_pairs(self):
@@ -48,22 +49,40 @@ class PatchExtractor:
         all_folder_elements = [f for f in os.listdir(self.input_folder) if not f.startswith('.')]
         for element in all_folder_elements:
             if ".mrxs" in element:
+                found_comparison_element = False
                 slide_name = element.split(".mrxs")[0]
+                slide_index = os.path.splitext(element.split(".mrxs_")[1])[0]
                 found_an_annotation = False
                 for comparison_element in all_folder_elements:
-                    if "label" in comparison_element and comparison_element.split("_")[0] == slide_name:
+                    if ("eMF" in comparison_element):
+                        if (
+                            "label" in comparison_element
+                            and "eMF_" + comparison_element.split("_")[1] == slide_name
+                                and os.path.splitext(comparison_element.split("_")[4])[0] == slide_index
+                        ):
+                            found_comparison_element = True
+
+                    else:
+                        if (
+                            "label" in comparison_element
+                            and comparison_element.split("_")[0] == slide_name
+                            and os.path.splitext(comparison_element.split("_")[3])[0] == slide_index
+                        ):
+                            found_comparison_element = True
+
+                    if(found_comparison_element):
                         found_an_annotation = True
                         self.valid_slide_and_annotation_names.append(
                             (element, comparison_element)
                         )
-                        continue
+                        found_comparison_element = False
+                        break
                 assert (
-                    found_an_annotation
+                 found_an_annotation
                 ), "We have not found an annotation for slide {}".format(slide_name)
-
         for (slide_name, annotation_name) in self.valid_slide_and_annotation_names:
-            print(slide_name, annotation_name)
-            sample_name = slide_name.split(".mrxs")[0]
+            logging.warning(slide_name + ' ' + annotation_name)
+            sample_name = slide_name.split(".mrxs")[0] + os.path.splitext(slide_name.split(".mrxs")[1])[0]
             number_of_selected_patches_per_class = {BACKGROUND: 0,
                                                     EPIDERMIS: 0,
                                                     SPONGIOSIS: 0,
@@ -79,6 +98,10 @@ class PatchExtractor:
                     (annotation.height, annotation.width),
                     selected_top_left_corners)
                 candidate_annotation_patch = self.__extract_patch_from(annotation, top_left_corner)
+                if self.__contains_unknown_label(candidate_annotation_patch):
+                    logging.warning(slide_name + ' ' + annotation_name + ' contained unknown label')
+                    consecutive_unsuccessful_iterations += 1
+                    continue
                 slide_patch = self.__extract_patch_from(slide, top_left_corner)
                 c = self.__determine_class_of(candidate_annotation_patch, slide_patch)
                 if self.__class_still_needed(c, number_of_selected_patches_per_class):
@@ -173,6 +196,10 @@ class PatchExtractor:
         else:
             raise ValueError("{} does not correspond to a known class".format(c))
 
+    def __contains_unknown_label(self, annotation_patch: Image) -> bool:
+        pixel_values = np.array(annotation_patch).flatten()
+        return np.any(np.isin(pixel_values, [0, EPIDERMIS, SPONGIOSIS], invert=True))
+
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser()
@@ -184,7 +211,7 @@ if __name__ == "__main__":
                            default=200)
     argparser.add_argument("-nppc", "--patches_per_class",
                            help="desired number of patches per class in form n_background n_epidermis n_spongiosis n_other",
-                           nargs=4, type=int, default=[10, 10, 10, 10])
+                           nargs=4, type=int, default=[200, 300, 300, 200])
     args = argparser.parse_args()
     patch_extractor = PatchExtractor(args.inputfolder, args.outputfolder, args.patch_size, args.min_distance,
                                      args.patches_per_class)
