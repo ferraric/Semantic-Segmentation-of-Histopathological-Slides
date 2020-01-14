@@ -1,0 +1,23 @@
+{
+  "exp_name": "unet",
+  "norway_dataset": false,
+  "num_epochs": 100,
+  "number_of_classes": 3,
+  "learning_rate": 0.0005,
+  "decay_steps": 100000,
+  "decay_rate": 0.96,
+  "lr_decay_staircase": true,
+  "batch_size": 4,
+  "shuffle_buffer_size": 1000,
+  "validate_every_n_steps": 5000,
+  "image_size": 512,
+  "use_image_augmentations": true,
+  "use_comet_experiments": true,
+  "save_model": true,
+  "comet_api_key": "NVyYXH1De9UgyELocupO1Lge9",
+  "comet_project_name": "semantic-segmentation-skin",
+  "comet_workspace": "jerry-crea",
+  "train_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/extracted_patches_train_more/",
+  "validation_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/validation/validation_slices_fixed/","patch_size": 512,
+  "patch_channels": 3
+}

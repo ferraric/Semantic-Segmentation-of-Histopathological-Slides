@@ -55,7 +55,7 @@ class UNetModel(Model):
         self.conv91 = Conv2D(64, (3,3), activation='relu', padding='same')
         self.conv92 = Conv2D(64, (3,3), activation='relu', padding='same')
 
-        self.conv93 = Conv2D(3, (1,1), activation='softmax', padding='same')
+        self.conv93 = Conv2D(self.config.number_of_classes, (1,1), activation='softmax', padding='same')
 
     def call(self, x):
         x = self.inputlayer(x)
