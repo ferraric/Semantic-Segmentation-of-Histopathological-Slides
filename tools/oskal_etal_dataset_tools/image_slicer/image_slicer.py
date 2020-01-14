@@ -104,7 +104,7 @@ def join(tiles, width=0, height=0):
 
 def validate_image(image, number_tiles):
     """Basic sanity checks prior to performing a split."""
-    TILE_LIMIT = 99 * 99
+    TILE_LIMIT = 999 * 999
 
     try:
         number_tiles = int(number_tiles)
@@ -118,7 +118,7 @@ def validate_image(image, number_tiles):
 
 def validate_image_col_row(image, col, row):
     """Basic checks for columns and rows values"""
-    SPLIT_LIMIT = 99
+    SPLIT_LIMIT = 999
 
     try:
         col = int(col)
