@@ -61,3 +61,4 @@ class DilatedFcnModel(Model):
 
         x = self.conv_out(x)
         return x
+
