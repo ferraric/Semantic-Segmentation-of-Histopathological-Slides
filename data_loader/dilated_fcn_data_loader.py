@@ -8,8 +8,8 @@ AUTOTUNE = tf.data.experimental.AUTOTUNE
 
 
 class DilatedFcnDataLoader:
-    def __init__(self, config, validation=False, preprocessing=None, augmentation=None):
-        self.augmentation = augmentation
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
+        self.use_image_augmentations = use_image_augmentations
         self.preprocessing = preprocessing
         self.config = config
         if (validation):
@@ -89,9 +89,17 @@ class DilatedFcnDataLoader:
         img = tf.cast(img, tf.float32)
         label = tf.cast(label, tf.float32)
 
-        if self.augmentation:
-            img = self.augmentation(img)
-            label = self.augmentation(label)
+        if self.use_image_augmentations:
+            n_rotations = np.random.choice(4)
+            img = tf.image.rot90(img, n_rotations)
+            label = tf.image.rot90(label, n_rotations)
+
+            if (np.random.rand(1) > 0.5):
+                img = tf.image.flip_left_right(img)
+                label = tf.image.flip_left_right(label)
+            if (np.random.rand(1) > 0.5):
+                img = tf.image.flip_up_down(img)
+                label = tf.image.flip_up_down(label)
 
         if self.preprocessing:
             img = self.preprocessing(img)
@@ -105,8 +113,8 @@ class DilatedFcnDataLoader:
 
 
 class NorwayDilatedFcnDataLoader(DilatedFcnDataLoader):
-    def __init__(self, config, validation=False, preprocessing=None, augmentation=None):
-        self.augmentation = augmentation
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
+        self.use_image_augmentations = use_image_augmentations
         self.preprocessing = preprocessing
         self.config = config
         if (validation):
