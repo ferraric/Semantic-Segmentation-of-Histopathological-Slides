@@ -198,3 +198,85 @@ class NorwayTransferLearningDataLoader(TransferLearningDataLoader):
         else:
             self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(
                 self.config.batch_size, drop_remainder=True)
+
+
+class BinaryClassificationDataloader:
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
+        self.preprocessing = preprocessing
+        self.config = config
+        self.use_image_augmentations = use_image_augmentations
+        if (validation):
+            dataset_path = config.validation_dataset_path
+            print("Validating on the path {}".format(dataset_path))
+
+        else:
+            dataset_path = config.train_dataset_path
+            print("Training on the path {}".format(dataset_path))
+
+        # create list of image and annotation paths
+        all_files = os.listdir(dataset_path)
+        self.slide_paths = []
+        if(validation):
+            for file in all_files:
+                if "mrxs" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+
+        else:
+            for file in all_files:
+                if "mrxs" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+
+
+        self.slide_paths.sort()
+        self.image_count = len(self.slide_paths)
+
+        print("We found {} images".format(self.image_count))
+
+        dataset = tf.data.Dataset.from_tensor_slices({
+            'image_paths': self.slide_paths,
+        })
+
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths']], [tf.float32, tf.uint8])))
+        dataset = dataset.map(self._fixup_shape)
+
+        if(validation):
+            self.dataset = dataset.repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+        else:
+            self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+
+
+    def __len__(self):
+        return math.ceil(self.image_count / self.config.batch_size)
+
+    def parse_image_and_label(self, image):
+        image_path = image.numpy().decode('UTF-8')
+        image_path_tensor = tf.io.read_file(image_path)
+        img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
+        img = tf.image.resize(img, (self.config.image_size, self.config.image_size),
+                             method=tf.image.ResizeMethod.BILINEAR)
+        if(os.path.split(image_path)[1][0]  == "E"):
+            label = tf.keras.utils.to_categorical(0, num_classes=self.config.number_of_classes)
+        elif(os.path.split(image_path)[1][0] == "e"):
+            label = tf.keras.utils.to_categorical(1, num_classes=self.config.number_of_classes)
+
+        label = tf.dtypes.cast(label, tf.uint8)
+        if self.use_image_augmentations:
+            n_rotations = np.random.choice(4)
+            img = tf.image.rot90(img, n_rotations)
+
+            if(np.random.rand(1) > 0.5):
+                img = tf.image.flip_left_right(img)
+            if (np.random.rand(1) > 0.5):
+                img = tf.image.flip_up_down(img)
+
+        if self.preprocessing:
+            img = self.preprocessing(img)
+
+        return img, label
+
+    def _fixup_shape(self, images, labels):
+        images.set_shape([512, 512, 3])
+        labels.set_shape([self.config.number_of_classes])
+        return images, labels
+
+
