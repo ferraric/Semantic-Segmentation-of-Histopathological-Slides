@@ -18,6 +18,12 @@ class TransferLearningUnetModel():
             self.activation = 'sigmoid'
         else:
             self.activation = 'softmax'
+        if(hasattr(self.config, "binary_classification")):
+            # if we do binary classification, we necessarily need a fixed inputshape.
+            if(self.config.binary_classification == True):
+                self.input_shape = (self.config.image_size, self.config.image_size, 3)
+        else:
+            self.input_shape = (None, None, 3)
 
         self.build_model()
 
@@ -25,8 +31,7 @@ class TransferLearningUnetModel():
     def build_model(self):
         print("We use a {} model with the backbone {}".format(self.model_type, self.config.backbone))
         if(self.model_type == "unet"):
-            self.model = sm.Unet(backbone_name=self.config.backbone, input_shape=(None, None,
-                                                                                  3),
+            self.model = sm.Unet(backbone_name=self.config.backbone, input_shape=self.input_shape,
                                  classes=self.config.number_of_classes,
                                  activation=self.activation,
                                  encoder_weights=self.encoder_weights,

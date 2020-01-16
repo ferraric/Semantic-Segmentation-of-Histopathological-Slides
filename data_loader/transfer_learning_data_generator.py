@@ -275,7 +275,7 @@ class BinaryClassificationDataloader:
         return img, label
 
     def _fixup_shape(self, images, labels):
-        images.set_shape([512, 512, 3])
+        images.set_shape([self.config.image_size, self.config.image_size, 3])
         labels.set_shape([self.config.number_of_classes])
         return images, labels
 

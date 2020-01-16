@@ -76,7 +76,7 @@ def main():
 
     model = tf.keras.models.Sequential([
         base_model,
-        tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu", input_shape=(config.image_size, config.image_size, config.number_of_classes)),
+        tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=8, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.MaxPooling2D(), #2048
         tf.keras.layers.Conv2D(filters=16, kernel_size=3, padding="same", activation="relu"),
@@ -97,12 +97,15 @@ def main():
         tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=1, kernel_size=3, padding="same", activation="relu"),
-
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(128, activation='relu', input_shape=(1,4096)),
         tf.keras.layers.Dense(1, activation='sigmoid')
     ])
 
+    for layer in model.layers:
+        print(layer.output_shape)
+
+    model.summary()
 
     if (config.use_image_augmentations):
         print("using image augmentations")
