@@ -8,10 +8,8 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0, parentdir)
 
 import argparse
-from utils.jeremy_metrics import  F1Score, MatthewsCorrelationCoefficient
+from utils.metrics import F1Score, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
-import tensorflow.keras.losses as tf_keras_losses
-
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
