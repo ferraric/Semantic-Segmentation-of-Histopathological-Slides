@@ -255,9 +255,9 @@ class BinaryClassificationDataloader:
         img = tf.image.resize(img, (self.config.image_size, self.config.image_size),
                              method=tf.image.ResizeMethod.BILINEAR)
         if(os.path.split(image_path)[1][0]  == "E"):
-            label = tf.keras.utils.to_categorical(0, num_classes=self.config.number_of_classes)
+            label = tf.keras.utils.to_categorical(0, num_classes=2)
         elif(os.path.split(image_path)[1][0] == "e"):
-            label = tf.keras.utils.to_categorical(1, num_classes=self.config.number_of_classes)
+            label = tf.keras.utils.to_categorical(1, num_classes=2)
 
         label = tf.dtypes.cast(label, tf.uint8)
         if self.use_image_augmentations:
@@ -276,7 +276,7 @@ class BinaryClassificationDataloader:
 
     def _fixup_shape(self, images, labels):
         images.set_shape([self.config.image_size, self.config.image_size, 3])
-        labels.set_shape([self.config.number_of_classes])
+        labels.set_shape([2])
         return images, labels
 
 

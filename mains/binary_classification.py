@@ -98,12 +98,9 @@ def main():
         tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=1, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(128, activation='relu', input_shape=(1,4096)),
-        tf.keras.layers.Dense(1, activation='sigmoid')
+        tf.keras.layers.Dense(128, activation='relu'),
+        tf.keras.layers.Dense(2, activation='softmax')
     ])
-
-    for layer in model.layers:
-        print(layer.output_shape)
 
     model.summary()
 
@@ -157,7 +154,6 @@ def main():
     f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
     matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
     metrics = [accuracy, precision, recall, f1_score, matthews_corelation_coefficient]
-
 
     model.compile(
         optimizer=optimizer,
