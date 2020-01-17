@@ -193,11 +193,6 @@ def save_input_label_and_prediction(input, label, prediction, config, output_fol
 
 
     if(config.number_of_classes == 3):
-        input_image.putpalette([
-            255, 255, 255,  # white
-            255, 0, 0,  # red
-            0, 0, 255  # blue
-        ])
         prediction_image.putpalette([
             255, 255, 255,  # white
             255, 0, 0,  # red
