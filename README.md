@@ -1,5 +1,25 @@
 # Semantic Segmentation of Histopathological Slides
 
+## Example Usage
+
+### Start model training
+For example to start training the dilated_fcn model on the kempf-pfaltz data one would need to execute the following command on the leonard cluster inside the top level git repository folder: <br>
+```
+bsub -R "rusage[ngpus_excl_p=1,mem=32000]" -R "select[gpu_model0==TeslaV100_SXM2_32GB]" -W 4:00 python3 mains/dilated_fcn_main.py -c configs/dilated_fcn_config_pfalz.json
+```
+### Predictions on test set
+To compute and save the predictions of a trained model on the test set, one can run:<br>
+(provided the model was saved on the path "../experiments/dilated_fcn/f85dcc5e30e5465eb9c9b661777c71e7/checkpoint/17-0.05.ckpt") <br>
+```
+bsub -R "rusage[mem=64000]" -W 4:00 python3 mains/model_predictions_dilated_fcn.py -c ./configs/dilated_fcn_config_pfalz_test.json -m ../experiments/dilated_fcn/f85dcc5e30e5465eb9c9b661777c71e7/checkpoint/17-0.05.ckpt -ei /nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/test/test_slices_fixed/slides/ -el /nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/test/test_slices_fixed/annotations/ -o ./dilated_fcn_pfalz_predictions -si -1
+```
+
+### Compute metrics on predictions
+Provided the predictions were saved in ./dilated_fcn_pfalz_predictions/:
+```
+python3 tools/calculate_result_metrics_from_predictions_pfalz.py -i dilated_fcn_pfalz_predictions
+```
+
 ## Project Description
 Mycosis fungoides (MF) is a slowly progressing but potentially life-threatening skin disease. If appropriate treatment is applied in early stages, the patients encounter a normal survival rate. Eczema on the other hand is a very common benign inflammatory skin disease whose clinical and histopathological features are similar to early stage MF. The early distinction of MF and eczema is of utmost importance in order to get the appropriate treatment for the patient.
 
