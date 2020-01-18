@@ -17,7 +17,8 @@
   "comet_api_key": "NVyYXH1De9UgyELocupO1Lge9",
   "comet_project_name": "semantic-segmentation-skin",
   "comet_workspace": "jerry-crea",
-  "train_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/extracted_patches_train_more/",
-  "validation_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/validation/validation_slices_fixed/","patch_size": 512,
+  "train_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/extracted_patches_train_4000/",
+  "validation_dataset_path": "/nfs/nas12.ethz.ch/fs1201/infk_jbuhmann_project_leonhard/cardioml/projects/semantic_skin_histo_segmentation/Data/pfalz_institute_data/final_data/validation/validation_slices_fixed/",
+  "patch_size": 512,
   "patch_channels": 3
 }

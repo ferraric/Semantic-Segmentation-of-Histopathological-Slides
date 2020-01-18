@@ -114,7 +114,7 @@ def main():
         mean_iou_with_argmax = MeanIouWithArgmax(num_classes=config.number_of_classes)
         f1_score = F1Score(num_classes=config.number_of_classes,
                            average='micro')  # dice similarity is equivalent to f1 score
-        matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
+        matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=2)
 
     # trainer.train()
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
@@ -127,7 +127,7 @@ def main():
     if (config.save_model):
         checkpoint_path = config.checkpoint_dir + "{epoch:02d}-{val_loss:.2f}.ckpt"
         save_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
-                                                           monitor='val_binary_accuracy',
+                                                           monitor='val_loss',
                                                            save_best_only=True,
                                                            save_weights_only=True,
                                                            save_freq='epoch',

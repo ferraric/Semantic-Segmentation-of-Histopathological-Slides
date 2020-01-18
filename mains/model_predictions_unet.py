@@ -13,7 +13,7 @@ sys.path.insert(0,parentdir)
 import tensorflow.keras.losses as tf_keras_losses
 import segmentation_models as sm
 from utils.config import process_config
-from models.dilated_fcn.dilated_fcn_model import DilatedFcnModel
+from models.unet import UNetModel
 import efficientnet.tfkeras
 
 
@@ -226,7 +226,7 @@ def save_input_label_and_prediction(input, label, prediction, config, output_fol
 
 
 def build_model_from_config(config):
-    model = DilatedFcnModel(config)
+    model = UNetModel(config)
     lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
         initial_learning_rate=config.learning_rate,
         decay_steps=config.decay_steps,
@@ -242,6 +242,7 @@ def build_model_from_config(config):
         loss=tf.keras.losses.categorical_crossentropy,
          metrics=metrics,
     )
+    return model
 
 
 if __name__ == '__main__':
@@ -256,22 +257,6 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     config = process_config(args.config)
-    model = DilatedFcnModel(config)
-    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
-        initial_learning_rate=config.learning_rate,
-        decay_steps=config.decay_steps,
-        decay_rate=config.decay_rate,
-        staircase=config.lr_decay_staircase)
-    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
-    precision = tf.keras.metrics.Precision()
-    recall = tf.keras.metrics.Recall()
-    accuracy = tf.keras.metrics.binary_accuracy
-    metrics = [precision, recall, accuracy]
-    model.compile(
-        optimizer=optimizer,
-        loss=tf.keras.losses.categorical_crossentropy,
-        metrics=metrics,
-    )
+    model = build_model_from_config(config)
     model.load_weights(args.model_to_load)
-    #loaded_model = tf.keras.models.load_model(args.model_to_load, compile=False)
     evaluate_model_on_images(model, args.evaluation_folder_inputs, args.evaluation_folder_labels, config, args.output_folder, int(args.start_index))

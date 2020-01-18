@@ -1,0 +1,15 @@
+{
+  "exp_name": "unet",
+  "norway_dataset": true,
+  "number_of_classes": 2,
+  "learning_rate": 0.0001,
+  "decay_steps": 100000,
+  "decay_rate": 0.96,
+  "lr_decay_staircase": true,
+  "batch_size": 2,
+  "shuffle_buffer_size": 1000,
+  "validate_every_n_steps": 5000,
+  "image_size": 4096,
+  "patch_size": 4096,
+  "patch_channels": 3
+}
