@@ -6,10 +6,9 @@ import argparse
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
+sys.path.insert(0, parentdir)
 
-
-from utils.metrics import  F1Score, MatthewsCorrelationCoefficient
+from utils.metrics import F1Score, MatthewsCorrelationCoefficient
 import tensorflow.keras.metrics as tf_keras_metrics
 
 if __name__ == '__main__':
@@ -31,7 +30,7 @@ if __name__ == '__main__':
 
     all_files = os.listdir(evaluation_folder)
     for file_name in all_files:
-        if("label" in file_name):
+        if ("label" in file_name):
             count += 1
             print("looking at file {}".format(file_name))
             index = file_name.split("_")[1]
@@ -48,8 +47,8 @@ if __name__ == '__main__':
             f1_score.update_state(label, prediction)
             matthews_corelation_coefficient.update_state(label, prediction)
 
-
-            print(accuracy.result(), precision.result(), recall.result(), f1_score.result(), mean_iou.result(), matthews_corelation_coefficient.result())
+            print(accuracy.result(), precision.result(), recall.result(), f1_score.result(), mean_iou.result(),
+                  matthews_corelation_coefficient.result())
             print("\n")
 
     print("accuracy", accuracy.result())

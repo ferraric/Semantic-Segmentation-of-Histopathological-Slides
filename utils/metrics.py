@@ -6,6 +6,7 @@ import tensorflow.keras.backend as K
 from tensorflow.keras.metrics import Metric
 import numpy as np
 
+
 class MeanIouWithArgmax(tf.metrics.MeanIoU):
     def __call__(self, y_true, y_pred, sample_weight=None):
         num_classes = tf.shape(y_true)[-1]
@@ -13,7 +14,6 @@ class MeanIouWithArgmax(tf.metrics.MeanIoU):
         y_pred = tf.one_hot(tf.argmax(y_pred, axis=-1), num_classes)
         y_true = tf.one_hot(tf.argmax(y_true, axis=-1), num_classes)
         return super().__call__(y_true, y_pred, sample_weight=sample_weight)
-
 
 
 # result computation adapted from https://github.com/vlainic/matthews-correlation-coefficient
@@ -24,19 +24,20 @@ class MatthewsCorrelationCoefficient(tf.keras.metrics.Metric):
         self.reset_states()
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        new_confusion_matrix = tf.math.confusion_matrix(tf.reshape(y_true, [-1]), tf.reshape(y_pred, [-1]), num_classes=self.num_classes, dtype=tf.dtypes.float32)
+        new_confusion_matrix = tf.math.confusion_matrix(tf.reshape(y_true, [-1]), tf.reshape(y_pred, [-1]),
+                                                        num_classes=self.num_classes, dtype=tf.dtypes.float32)
         assert self.confusion_matrix.shape == new_confusion_matrix.shape
         self.confusion_matrix.assign(self.confusion_matrix + new_confusion_matrix)
 
     def result(self):
         N = K.sum(self.confusion_matrix)
-        up = N*tf.linalg.trace(self.confusion_matrix) - K.sum(tf.matmul(self.confusion_matrix, self.confusion_matrix))
-        down_left = K.sqrt(N**2 - K.sum(tf.matmul(self.confusion_matrix, K.transpose(self.confusion_matrix))))
-        down_right = K.sqrt(N**2 - K.sum(tf.matmul(K.transpose(self.confusion_matrix), self.confusion_matrix)))
-    
+        up = N * tf.linalg.trace(self.confusion_matrix) - K.sum(tf.matmul(self.confusion_matrix, self.confusion_matrix))
+        down_left = K.sqrt(N ** 2 - K.sum(tf.matmul(self.confusion_matrix, K.transpose(self.confusion_matrix))))
+        down_right = K.sqrt(N ** 2 - K.sum(tf.matmul(K.transpose(self.confusion_matrix), self.confusion_matrix)))
+
         mcc = up / (down_left * down_right + K.epsilon())
         mcc = tf.where(tf.math.is_nan(mcc), tf.zeros_like(mcc), mcc)
-    
+
         return K.mean(mcc)
 
     def reset_states(self):

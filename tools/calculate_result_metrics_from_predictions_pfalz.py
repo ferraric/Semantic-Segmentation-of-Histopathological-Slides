@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     all_files = os.listdir(evaluation_folder)
     for file_name in all_files:
-        if("label" in file_name):
+        if ("label" in file_name):
             count += 1
             print("looking at file {}".format(file_name))
             index = file_name.split("_")[1]
@@ -40,7 +40,6 @@ if __name__ == '__main__':
             mean_iou.update_state(label, prediction)
             f1_score.update_state(label, prediction)
             matthews_corelation_coefficient.update_state(label, prediction)
-            
 
             print(accuracy.result(), f1_score.result(), mean_iou.result(), matthews_corelation_coefficient.result())
             print("\n")
