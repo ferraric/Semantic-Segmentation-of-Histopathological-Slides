@@ -69,13 +69,8 @@ def main():
     # model = tf.keras.models.load_model(config.saved_model_path, compile=False)
 
     transfer_learning_unet = TransferLearningUnetModel(config)
-    base_model = transfer_learning_unet.model
-    backbone_preprocessing = sm.get_preprocessing(config.backbone)
-    for layer in base_model.layers:
-        layer.trainable = False
 
     model = tf.keras.models.Sequential([
-        base_model,
         tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=8, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.MaxPooling2D(), #2048
