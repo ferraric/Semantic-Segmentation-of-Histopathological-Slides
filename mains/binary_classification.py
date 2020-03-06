@@ -68,8 +68,6 @@ def main():
     print("loading model")
     # model = tf.keras.models.load_model(config.saved_model_path, compile=False)
 
-    transfer_learning_unet = TransferLearningUnetModel(config)
-
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Conv2D(filters=8, kernel_size=3, padding="same", activation="relu"),

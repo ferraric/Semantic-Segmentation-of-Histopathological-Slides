@@ -236,7 +236,7 @@ class BinaryClassificationDataloader:
             'image_paths': self.slide_paths,
         })
 
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths']], [tf.float32, tf.uint8])))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.float32, tf.uint8])))
         dataset = dataset.map(self._fixup_shape)
 
         if(validation):
@@ -248,12 +248,18 @@ class BinaryClassificationDataloader:
     def __len__(self):
         return math.ceil(self.image_count / self.config.batch_size)
 
-    def parse_image_and_label(self, image):
+    def parse_image_and_label(self, image, label):
         image_path = image.numpy().decode('UTF-8')
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
-        img = tf.image.resize(img, (self.config.image_size, self.config.image_size),
-                             method=tf.image.ResizeMethod.BILINEAR)
+
+        seg_map = np.expand_dims(np.array(Image.open(label_path)), -1).astype('uint8')
+
+        assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
+        seg_map = tf.keras.utils.to_categorical(label, num_classes=self.config.number_of_classes)
+        seg_map = tf.dtypes.cast(seg_map, tf.float32)
+
+        img = tf.concat([img, seg_map], axis=-1)
         if(os.path.split(image_path)[1][0]  == "E"):
             label = tf.keras.utils.to_categorical(0, num_classes=2)
         elif(os.path.split(image_path)[1][0] == "e"):
@@ -275,8 +281,10 @@ class BinaryClassificationDataloader:
         return img, label
 
     def _fixup_shape(self, images, labels):
-        images.set_shape([self.config.image_size, self.config.image_size, 3])
+        images.set_shape([self.config.image_size, self.config.image_size, 4])
         labels.set_shape([2])
         return images, labels
+
+
 
 
