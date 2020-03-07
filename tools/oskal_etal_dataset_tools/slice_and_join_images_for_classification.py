@@ -8,7 +8,6 @@ sys.path.insert(0,parentdir)
 import argparse
 from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
 from PIL import Image
-import numpy as np
 import math
 import inspect,sys
 
