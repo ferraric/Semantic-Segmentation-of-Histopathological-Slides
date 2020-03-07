@@ -2,7 +2,7 @@ import inspect,sys
 import os
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
+parentdir = os.path.dirname(os.path.dirname(currentdir))
 sys.path.insert(0,parentdir)
 
 import argparse
@@ -11,11 +11,6 @@ from PIL import Image
 import numpy as np
 import math
 import inspect,sys
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0,parentdir)
-
 
 new_size = 4096
 Image.MAX_IMAGE_PIXELS = 100000000000
@@ -71,7 +66,6 @@ def split_input_images(input_image_folder, output_image_folder):
         newHeight = int(downsample_height*new_size)
         print("resizing to powers of two: new_width= {} and new_height= {}".format( newWidth, newHeight))
         image = image.resize((newWidth, newHeight), resample=Image.BICUBIC)
-        image.save(os.path.join(output_image_folder, "resized_input.png"))
 
         # compute slices of size 4096x4096
         number_of_slice_columns = int(newWidth / new_size)
