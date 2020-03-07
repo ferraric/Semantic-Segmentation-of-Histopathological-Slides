@@ -4,6 +4,11 @@ from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
 from PIL import Image
 import numpy as np
 import math
+import inspect,sys
+
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0,parentdir)
 
 new_size = 4096
 Image.MAX_IMAGE_PIXELS = 100000000000
