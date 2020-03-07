@@ -29,7 +29,7 @@ def join_input_sclices(input_image_folder, output_image_folder):
         else:
             print("Joining new image {}".format(previous_original_image_name))
             new_image = image_slicer.join(all_slices_for_image)
-            new_image = new_image.resize((4096,4096))
+            new_image = new_image.resize((4096,4096), resample=Image.BICUBIC)
             new_image.save(os.path.join(output_image_folder, previous_original_image_name + ".png"))
             all_slices_for_image = []
             previous_original_image_name = current_slice_name
