@@ -16,6 +16,7 @@ import segmentation_models as sm
 from utils.config import process_config
 import efficientnet.tfkeras
 
+
 class PfalzTestdataLoader:
     def __init__(self, config, evaluation_folder_inputs):
         self.config = config
