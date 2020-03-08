@@ -11,8 +11,10 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
 
+import tensorflow.keras.losses as tf_keras_losses
 import segmentation_models as sm
 from utils.config import process_config
+import efficientnet.tfkeras
 
 class PfalzTestdataLoader:
     def __init__(self, config, evaluation_folder_inputs):

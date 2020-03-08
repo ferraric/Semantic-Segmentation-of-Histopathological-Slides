@@ -15,7 +15,7 @@ class CreateImageSegmentationPair:
         output_folder,
         boxes_threshold,
         level,
-        text_file_with_file_names=None,
+        text_file_with_annotation_names=None,
     ):
         # Make some assertions about the files in the folder etc.
         assert os.path.isdir(input_slides_folder), "The given input path has to be a directory"
@@ -33,21 +33,48 @@ class CreateImageSegmentationPair:
         self.valid_slides = []
 
         all_folder_elements = os.listdir(input_slides_folder)
-        filename_folder_elements = all_folder_elements
-        if text_file_with_file_names != None:
-            filename_folder_elements = []
-
-            with open(text_file_with_file_names, "r") as f:
+        annotation_folder_elements = all_folder_elements
+        # for this code to work we always need an annotation file.
+        if text_file_with_annotation_names != None:
+            annotation_folder_elements = []
+            # if a text file with annotation names was given, then don't look for annotations matching a .mrxs name
+            # all the elements of the input_folder, but look only at the names given by the text file.
+            with open(text_file_with_annotation_names, "r") as f:
                 for line in f:
-                    filename_folder_elements.append(line.rstrip())
+                    annotation_folder_elements.append(line.rstrip())
 
         for element in all_folder_elements:
             if os.path.splitext(element)[1] == ".mrxs":
-                self.valid_slides.append(element)
+                # make sure the file has an annotation
+                slide_name = os.path.splitext(element)[0]
+                found_an_annotation = False
+                for comparison_element in annotation_folder_elements:
+                    if ("eMF" in comparison_element):
+                        if (
+                                "label" in comparison_element
+                                and "eMF_" + comparison_element.split("_")[1] == slide_name
+                        ):
+                            found_an_annotation = True
+
+                    else:
+                        if (
+                                "label" in comparison_element
+                                and comparison_element.split("_")[0] == slide_name
+                        ):
+                            found_an_annotation = True
+
+                    if (found_an_annotation):
+                        # add a tuple of the  slide name and corresponding annotation name to a list with all .mrxs slides
+                        self.valid_slides_and_annotations.append(
+                            (element, comparison_element)
+                        )
+                        break
+                if (not found_an_annotation):
+                    print("We have not found an annotation for {}".format(slide_name))
 
         Image.MAX_IMAGE_PIXELS = 100000000000
         # create the output folder
-        if(not os.path.isdir(output_folder)):
+        if (not os.path.isdir(output_folder)):
             os.mkdir(output_folder)
 
     def create_dataset_of_image_segmentation_pairs(self):
