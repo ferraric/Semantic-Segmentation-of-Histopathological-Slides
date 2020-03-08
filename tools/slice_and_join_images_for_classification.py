@@ -12,7 +12,6 @@ import argparse
 from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
 from PIL import Image
 import math
-import inspect,sys
 
 new_size = 4096
 Image.MAX_IMAGE_PIXELS = 100000000000
@@ -26,8 +25,12 @@ def join_input_sclices(input_image_folder, output_image_folder):
     all_input_image_names.sort()
     previous_original_image_name = None
     all_slices_for_image = []
+    total_slide_count = len(all_input_image_names)
     for i, image_name in enumerate(all_input_image_names):
-        current_slice_name = image_name.split("_")[0] + image_name.split("_")[1]
+        if("eMF" in image_name):
+            current_slice_name = image_name.split("_")[0] + image_name.split("_")[1] + image_name.split("_")[2]
+        else:
+            current_slice_name = image_name.split("_")[0] + image_name.split("_")[1]
         current_slice_coordinates = ((int(image_name.split("_")[-1].split(".")[0])-1)*new_size,(int(image_name.split("_")[-2])-1)*new_size)
         if(i == 0):
             previous_original_image_name = current_slice_name
@@ -35,7 +38,7 @@ def join_input_sclices(input_image_folder, output_image_folder):
             image_slice = Image.open(os.path.join(input_image_folder, image_name))
             tile = image_slicer.Tile(image=image_slice, number=0, coords=current_slice_coordinates, position=0)
             all_slices_for_image.append(tile)
-        else:
+        elif(i == total_slide_count-1 or previous_original_image_name != current_slice_name):
             print("Joining new image {}".format(previous_original_image_name))
             new_image = image_slicer.join(all_slices_for_image)
             new_image = new_image.resize((4096,4096), resample=Image.BICUBIC)
