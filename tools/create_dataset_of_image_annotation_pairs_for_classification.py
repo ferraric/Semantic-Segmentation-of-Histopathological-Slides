@@ -31,6 +31,8 @@ class CreateImageSegmentationPair:
         self.box_threshold = boxes_threshold
         self.level = level
         self.valid_slides = []
+        self.valid_slides_and_annotations = []
+
 
         all_folder_elements = os.listdir(input_slides_folder)
         annotation_folder_elements = all_folder_elements
