@@ -31,8 +31,6 @@ class CreateImageSegmentationPair:
         self.box_threshold = boxes_threshold
         self.level = level
         self.valid_slides = []
-        self.valid_slides_and_annotations = []
-
 
         all_folder_elements = os.listdir(input_slides_folder)
         annotation_folder_elements = all_folder_elements
@@ -67,8 +65,8 @@ class CreateImageSegmentationPair:
 
                     if (found_an_annotation):
                         # add a tuple of the  slide name and corresponding annotation name to a list with all .mrxs slides
-                        self.valid_slides_and_annotations.append(
-                            (element, comparison_element)
+                        self.valid_slides.append(
+                            element
                         )
                         break
                 if (not found_an_annotation):
