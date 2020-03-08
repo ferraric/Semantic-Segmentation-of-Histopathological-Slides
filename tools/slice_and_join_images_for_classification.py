@@ -24,7 +24,7 @@ def join_input_sclices(input_image_folder, output_image_folder):
     previous_original_image_name = None
     all_slices_for_image = []
     for i, image_name in enumerate(all_input_image_names):
-        current_slice_name = image_name.split("_")[0]
+        current_slice_name = image_name.split("_")[0] + image_name.split("_")[1]
         current_slice_coordinates = ((int(image_name.split("_")[-1].split(".")[0])-1)*new_size,(int(image_name.split("_")[-2])-1)*new_size)
         if(i == 0):
             previous_original_image_name = current_slice_name
