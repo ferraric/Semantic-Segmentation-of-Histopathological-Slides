@@ -4,9 +4,9 @@ import os
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
 grandparentdir = os.path.dirname(parentdir)
-sys.path.insert(0,parentdir)
-sys.path.insert(0,grandparentdir)
 
+sys.path.insert(0,parentdir)
+sys.path.insert(0,os.path.dirname(currentdir))
 
 import argparse
 from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
@@ -34,7 +34,7 @@ def join_input_sclices(input_image_folder, output_image_folder):
         current_slice_coordinates = ((int(image_name.split("_")[-1].split(".")[0])-1)*new_size,(int(image_name.split("_")[-2])-1)*new_size)
         if(i == 0):
             previous_original_image_name = current_slice_name
-        if(previous_original_image_name == current_slice_name):
+        if(previous_original_image_name == current_slice_name and i != total_slide_count-1):
             image_slice = Image.open(os.path.join(input_image_folder, image_name))
             tile = image_slicer.Tile(image=image_slice, number=0, coords=current_slice_coordinates, position=0)
             all_slices_for_image.append(tile)
