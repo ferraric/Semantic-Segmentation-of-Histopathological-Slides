@@ -3,7 +3,10 @@ import os
 
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
+grandparentdir = os.path.dirname(parentdir)
 sys.path.insert(0,parentdir)
+sys.path.insert(0,grandparentdir)
+
 
 import argparse
 from tools.oskal_etal_dataset_tools.image_slicer import image_slicer
