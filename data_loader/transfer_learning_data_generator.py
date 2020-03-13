@@ -216,16 +216,30 @@ class BinaryClassificationDataloader:
         # create list of image and annotation paths
         all_files = os.listdir(dataset_path)
         self.slide_paths = []
+        self.annotation_paths = []
         if(validation):
             for file in all_files:
-                if "mrxs" in file:
+                if "slide" in file:
                     self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "annotation" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
 
         else:
             for file in all_files:
-                if "mrxs" in file:
+                if "resized" in file:
                     self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "prediction" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
 
+        self.slide_paths.sort()
+        self.annotation_paths.sort()
+        self.image_count = len(self.slide_paths)
+        annotation_count = len(self.annotation_paths)
+
+        assert self.image_count == annotation_count, (
+            "The slide count is {} and the annotation count is {}, but they should be"
+            " equal".format(self.image_count, annotation_count)
+        )
 
         self.slide_paths.sort()
         self.image_count = len(self.slide_paths)
@@ -234,6 +248,7 @@ class BinaryClassificationDataloader:
 
         dataset = tf.data.Dataset.from_tensor_slices({
             'image_paths': self.slide_paths,
+            'labels': self.annotation_paths
         })
 
         dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.float32, tf.uint8])))
