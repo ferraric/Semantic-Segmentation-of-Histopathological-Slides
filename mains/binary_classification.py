@@ -66,7 +66,6 @@ def main():
     ########################
     # load model
     print("loading model")
-    # model = tf.keras.models.load_model(config.saved_model_path, compile=False)
 
     model = tf.keras.models.Sequential([
         tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu"),
@@ -102,7 +101,7 @@ def main():
         train_dataloader = BinaryClassificationDataloader(
             config,
             validation=False,
-            preprocessing=backbone_preprocessing,
+            preprocessing=None,
             use_image_augmentations=True
         )
     else:
@@ -110,14 +109,14 @@ def main():
         train_dataloader = BinaryClassificationDataloader(
             config,
             validation=False,
-            preprocessing=backbone_preprocessing,
+            preprocessing=None,
             use_image_augmentations=False
         )
 
     validation_dataloader = BinaryClassificationDataloader(
         config,
         validation=True,
-        preprocessing=backbone_preprocessing,
+            preprocessing=None,
         use_image_augmentations=False
     )
 

@@ -256,10 +256,14 @@ class BinaryClassificationDataloader:
         seg_map = np.expand_dims(np.array(Image.open(label_path)), -1).astype('uint8')
 
         assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
-        seg_map = tf.keras.utils.to_categorical(label, num_classes=self.config.number_of_classes)
+        seg_map = tf.keras.utils.to_categorical(label, num_classes=3)
         seg_map = tf.dtypes.cast(seg_map, tf.float32)
+        print("Seg Map Size")
+        print(tf.shape(seg_map))
 
         img = tf.concat([img, seg_map], axis=-1)
+        print("img Size")
+        print(tf.shape(img))
         if(os.path.split(image_path)[1][0]  == "E"):
             label = tf.keras.utils.to_categorical(0, num_classes=2)
         elif(os.path.split(image_path)[1][0] == "e"):
