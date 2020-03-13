@@ -219,9 +219,9 @@ class BinaryClassificationDataloader:
         self.annotation_paths = []
         if(validation):
             for file in all_files:
-                if "slide" in file:
+                if "resized" in file:
                     self.slide_paths.append(os.path.join(dataset_path, file))
-                elif "annotation" in file:
+                elif "prediction" in file:
                     self.annotation_paths.append(os.path.join(dataset_path, file))
 
         else:
@@ -270,20 +270,19 @@ class BinaryClassificationDataloader:
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
 
-        seg_map = np.expand_dims(np.array(Image.open(label_path)), -1).astype('uint8')
+        seg_map = np.array(Image.open(label_path)).astype('uint8')
+        seg_map = seg_map[:,:,:3]
+        seg_map = tf.math.divide(seg_map, 255)
 
-        assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
-        seg_map = tf.keras.utils.to_categorical(label, num_classes=3)
-        seg_map = tf.dtypes.cast(seg_map, tf.float32)
-        print("Seg Map Size")
-        print(tf.shape(seg_map))
+
+        #assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
 
         img = tf.concat([img, seg_map], axis=-1)
         print("img Size")
         print(tf.shape(img))
-        if(os.path.split(image_path)[1][0]  == "E"):
+        if(os.path.split(image_path)[1].startswith("resizedE")):
             label = tf.keras.utils.to_categorical(0, num_classes=2)
-        elif(os.path.split(image_path)[1][0] == "e"):
+        elif(os.path.split(image_path)[1][0].startswith("resizedeMF")):
             label = tf.keras.utils.to_categorical(1, num_classes=2)
 
         label = tf.dtypes.cast(label, tf.uint8)
@@ -302,7 +301,7 @@ class BinaryClassificationDataloader:
         return img, label
 
     def _fixup_shape(self, images, labels):
-        images.set_shape([self.config.image_size, self.config.image_size, 4])
+        images.set_shape([self.config.image_size, self.config.image_size, 6])
         labels.set_shape([2])
         return images, labels
 
