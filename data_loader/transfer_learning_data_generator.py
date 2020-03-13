@@ -265,6 +265,8 @@ class BinaryClassificationDataloader:
 
     def parse_image_and_label(self, image, label):
         image_path = image.numpy().decode('UTF-8')
+        label_path = label.numpy().decode('UTF-8')
+
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
 
