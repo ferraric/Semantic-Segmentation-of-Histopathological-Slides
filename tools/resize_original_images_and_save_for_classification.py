@@ -9,7 +9,7 @@ grandparentdir = os.path.dirname(parentdir)
 sys.path.insert(0,parentdir)
 sys.path.insert(0,os.path.dirname(currentdir))
 
-
+Image.MAX_IMAGE_PIXELS = 100000000000
 new_size = 4096
 
 def resize_and_save_images(input_image_folder, output_image_folder):
@@ -19,9 +19,9 @@ def resize_and_save_images(input_image_folder, output_image_folder):
     if (".DS_Store" in all_input_image_names):
         all_input_image_names.remove(".DS_Store")
     for image_name in all_input_image_names:
-        image = Image.opne(os.path.join(input_image_folder, image_name))
+        image = Image.open(os.path.join(input_image_folder, image_name))
         resized_image = image.resize((new_size, new_size), resample=Image.BICUBIC)
-        image.save(os.path.join(output_image_folder, "resized"+image_name +".png"))
+        image.save(os.path.join(output_image_folder, "resized"+image_name))
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
