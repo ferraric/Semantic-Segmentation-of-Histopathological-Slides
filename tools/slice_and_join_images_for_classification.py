@@ -70,6 +70,8 @@ def split_input_images(input_image_folder, output_image_folder):
         downsample_height = math.floor(height / new_size)
         newHeight = int(downsample_height*new_size)
         print("resizing to powers of two: new_width= {} and new_height= {}".format( newWidth, newHeight))
+        if(newWidth == 0 or newHeight == 0):
+            continue
         image = image.resize((newWidth, newHeight), resample=Image.BICUBIC)
 
         # compute slices of size 4096x4096
