@@ -219,7 +219,7 @@ def save_input_label_and_prediction(input, label, prediction, image_name, config
 
     input_image.save(os.path.join(output_folder, "input_{}".format(image_name)))
     prediction_image.save(os.path.join(output_folder, "prediction_{}".format(image_name)))
-    label_image.save(os.path.join(output_folder, "label_{}.png".format(image_name)))
+    label_image.save(os.path.join(output_folder, "label_{}".format(image_name)))
 
 
 
