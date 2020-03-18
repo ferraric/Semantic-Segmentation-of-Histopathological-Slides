@@ -68,7 +68,6 @@ class PfalzTestdataLoader:
     def parse_image_and_label(self, image, label, is_norwegian_data):
         image_path = image.numpy().decode('UTF-8')
         label_path = label.numpy().decode('UTF-8')
-
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
         # Load image with Pillow to make sure we lod it in palette mode.        assert label.shape == (self.config.image_size, self.config.image_size, 1), label.shape
@@ -89,7 +88,7 @@ class PfalzTestdataLoader:
 
         img = self.preprocessing(img)
 
-        return img, label, image_path_tensor
+        return img, label, image_path
 
     def _fixup_shape(self, images, labels, image_path_names):
         images.set_shape([None, None, 3])
@@ -169,14 +168,13 @@ def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_
         image_path = el[2].numpy()[0].decode('UTF-8')
 
         image_name = os.path.split(image_path)[-1]
-
         prediction = model.predict(input)
-        save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, i)
+        save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder)
 
     assert number_of_test_images == test_data_set_loader.image_count, "Should be equal but is {} and {}".format(number_of_test_images, test_data_set_loader.image_count)
 
 
-def save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, step ):
+def save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder ):
 
     assert input[0].numpy().shape == (config.image_size, config.image_size, 3), input[0].numpy().shape
     assert label[0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), label[0].numpy().shape
@@ -236,6 +234,5 @@ if __name__ == '__main__':
     args = argparser.parse_args()
 
     config = process_config(args.config)
-    #loaded_model = tf.keras.models.load_model(args.model_to_load, compile=False)
-    loaded_model = None
+    loaded_model = tf.keras.models.load_model(args.model_to_load, compile=False)
     evaluate_model_on_images(loaded_model, args.evaluation_folder_inputs, args.evaluation_folder_labels, config, args.output_folder)
