@@ -19,7 +19,7 @@ import tensorflow.keras.metrics as tf_keras_metrics
 import tensorflow.keras.losses as tf_keras_losses
 # import models.transfer_learning_models.transfer_learning_implementations as sm
 
-from utils.jeremy_metrics import MeanIouWithArgmax, F1Score, MatthewsCorrelationCoefficient
+from utils.metrics import MeanIouWithArgmax, F1Score, MatthewsCorrelationCoefficient
 from utils.config import process_config
 from utils.dirs import create_dirs
 from utils.utils import get_args
