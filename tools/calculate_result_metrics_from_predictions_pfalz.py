@@ -45,7 +45,7 @@ if __name__ == '__main__':
             print("\n")
 
     print("accuracy", accuracy.result())
-    print("mean iou", mean_iou.result())
     print("f1 score", f1_score.result())
+    print("mean iou", mean_iou.result())
     print("matthews", matthews_corelation_coefficient.result())
     print("count ", count)

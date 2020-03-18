@@ -26,8 +26,6 @@ if __name__ == '__main__':
     f1_score = F1Score(num_classes=2, average='micro')  # dice similarity is equivalent to f1 score
     matthews_corelation_coefficient = MatthewsCorrelationCoefficient(num_classes=2)
 
-    matt_sum = 0
-
     all_files = os.listdir(evaluation_folder)
     for file_name in all_files:
         if ("label" in file_name):
@@ -52,9 +50,9 @@ if __name__ == '__main__':
             print("\n")
 
     print("accuracy", accuracy.result())
-    print("recall", recall.result())
     print("precision", precision.result())
-    print("mean iou", mean_iou.result())
+    print("recall", recall.result())
     print("f1 score", f1_score.result())
+    print("mean iou", mean_iou.result())
     print("matthews", matthews_corelation_coefficient.result())
     print("count ", count)
