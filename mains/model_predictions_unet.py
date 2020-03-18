@@ -60,7 +60,7 @@ class PfalzTestdataLoader:
             'image_paths': self.slide_paths,
             'labels': self.annotation_paths
         })
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], False], [tf.float32, tf.uint8])))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], False], [tf.float32, tf.uint8], tf.string)))
         dataset = dataset.map(self._fixup_shape)
 
         self.dataset = dataset.repeat(1).batch(1, drop_remainder=False)
@@ -90,13 +90,13 @@ class PfalzTestdataLoader:
 
         img = self.preprocessing(img)
 
-        return img, label
+        return img, label, image_path
 
 
-    def _fixup_shape(self, images, labels):
+    def _fixup_shape(self, images, labels, image_path_names):
         images.set_shape([None, None, 3])
         labels.set_shape([None, None, self.config.number_of_classes])
-        return images, labels
+        return images, labels, image_path_names
 
 
 class NorwayTestDataLoader(PfalzTestdataLoader):
@@ -141,7 +141,7 @@ class NorwayTestDataLoader(PfalzTestdataLoader):
             'labels': self.annotation_paths
         })
         dataset = dataset.map(lambda x: (
-            tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], True], [tf.float32, tf.uint8])))
+            tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], True], [tf.float32, tf.uint8], tf.string)))
         dataset = dataset.map(self._fixup_shape)
 
         self.dataset = dataset.repeat(1).batch(1, drop_remainder=False)
@@ -167,9 +167,11 @@ def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_
             continue
         input = el[0]
         label = el[1]
+        image_path = el[2].numpy()[0].decode('UTF-8')
 
+        image_name = os.path.split(image_path)[-1]
         prediction = model.predict(input)
-        save_input_label_and_prediction(input, label, prediction, config, output_folder, i)
+        save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, i)
 
     print("Sanity checking that the model you are loading actually is the right one")
     model.summary()
@@ -177,7 +179,7 @@ def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_
     assert number_of_test_images == test_data_set_loader.image_count, "Should be equal but is {} and {}".format(number_of_test_images, test_data_set_loader.image_count)
 
 
-def save_input_label_and_prediction(input, label, prediction, config, output_folder, step ):
+def save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, step ):
 
     assert input[0].numpy().shape == (config.image_size, config.image_size, 3), input[0].numpy().shape
     assert label[0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), label[0].numpy().shape
@@ -220,9 +222,9 @@ def save_input_label_and_prediction(input, label, prediction, config, output_fol
     else:
         raise NotImplementedError()
 
-    input_image.save(os.path.join(output_folder, "input_{}.png".format(step)))
-    prediction_image.save(os.path.join(output_folder, "prediction_{}.png".format(step)))
-    label_image.save(os.path.join(output_folder, "label_{}.png".format(step)))
+    input_image.save(os.path.join(output_folder, "input_{}.png".format(image_name)))
+    prediction_image.save(os.path.join(output_folder, "prediction_{}.png".format(image_name)))
+    label_image.save(os.path.join(output_folder, "label_{}.png".format(image_name)))
 
 
 def build_model_from_config(config):
