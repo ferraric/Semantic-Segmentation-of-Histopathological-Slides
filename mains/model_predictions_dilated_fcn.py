@@ -60,7 +60,7 @@ class PfalzTestdataLoader:
             'image_paths': self.slide_paths,
             'labels': self.annotation_paths
         })
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], False], [tf.float32, tf.uint8], tf.string)))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], False], [tf.float32, tf.uint8, tf.string])))
         dataset = dataset.map(self._fixup_shape)
 
         self.dataset = dataset.repeat(1).batch(1, drop_remainder=False)
@@ -141,7 +141,7 @@ class NorwayTestDataLoader(PfalzTestdataLoader):
             'labels': self.annotation_paths
         })
         dataset = dataset.map(lambda x: (
-            tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], True], [tf.float32, tf.uint8], tf.string)))
+            tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels'], True], [tf.float32, tf.uint8, tf.string])))
         dataset = dataset.map(self._fixup_shape)
 
         self.dataset = dataset.repeat(1).batch(1, drop_remainder=False)
