@@ -94,7 +94,7 @@ def main():
         tf.keras.layers.Dense(2, activation='softmax')
     ])
 
-    model.summary()
+    #model.summary()
 
     if (config.use_image_augmentations):
         print("using image augmentations")
@@ -121,11 +121,11 @@ def main():
     )
 
     #print the model summary and save it into the output folder
-    model.summary()
+    #model.summary()
     model_architecture_path = os.path.join(config.summary_dir, "model_architecture")
-    with open(model_architecture_path, "w") as fh:
+    #with open(model_architecture_path, "w") as fh:
         # Pass the file handle in as a lambda function to make it callable
-        model.summary(print_fn=lambda x: fh.write(x + "\n"))
+        #model.summary(print_fn=lambda x: fh.write(x + "\n"))
     experiment.log_asset(model_architecture_path)
     experiment.log_asset(args.config)
 
