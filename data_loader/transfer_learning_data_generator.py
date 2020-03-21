@@ -278,11 +278,9 @@ class BinaryClassificationDataloader:
         #assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
 
         img = tf.concat([img, seg_map], axis=-1)
-        print("img Size")
-        print(tf.shape(img))
         if(os.path.split(image_path)[1].startswith("resizedE")):
             label = tf.keras.utils.to_categorical(0, num_classes=2)
-        elif(os.path.split(image_path)[1][0].startswith("resizedeMF")):
+        elif(os.path.split(image_path)[1].startswith("resizedeMF")):
             label = tf.keras.utils.to_categorical(1, num_classes=2)
 
         label = tf.dtypes.cast(label, tf.uint8)
