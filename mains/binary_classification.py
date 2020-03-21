@@ -145,7 +145,7 @@ def main():
     recall = tf_keras_metrics.Recall()  # equivalent to sensitivity in the norway paper
     f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
     matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
-    metrics = [accuracy, precision, recall, f1_score, matthews_corelation_coefficient]
+    metrics = [accuracy]
 
     model.compile(
         optimizer=optimizer,
