@@ -21,7 +21,7 @@ def resize_and_save_images(input_image_folder, output_image_folder):
     for image_name in all_input_image_names:
         image = Image.open(os.path.join(input_image_folder, image_name))
         resized_image = image.resize((new_size, new_size), resample=Image.BICUBIC)
-        image.save(os.path.join(output_image_folder, "resized"+image_name))
+        resized_image.save(os.path.join(output_image_folder, "resized"+image_name))
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
