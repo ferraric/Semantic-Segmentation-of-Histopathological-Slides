@@ -98,7 +98,6 @@ def join(tiles, width=0, height=0, is_rgb=True):
     columns, rows = calc_columns_rows(len(tiles))
     for tile in tiles:
         try:
-            print("pasting {}".format(tile.coords))
             im.paste(tile.image, tile.coords)
         except IOError:
             # do nothing, blank out the image
