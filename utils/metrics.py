@@ -21,7 +21,7 @@ class MatthewsCorrelationCoefficient(tf.keras.metrics.Metric):
     def __init__(self, num_classes, name="matthews_correlation_coefcient", **kwargs):
         super(MatthewsCorrelationCoefficient, self).__init__(name=name, **kwargs)
         self.num_classes = num_classes
-        self.reset_states()
+        self.confusion_matrix = tf.Variable(tf.zeros((self.num_classes, self.num_classes)), name="confusion_matrix")
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         new_confusion_matrix = tf.math.confusion_matrix(tf.reshape(y_true, [-1]), tf.reshape(y_pred, [-1]),
@@ -42,7 +42,7 @@ class MatthewsCorrelationCoefficient(tf.keras.metrics.Metric):
 
     def reset_states(self):
         """Resets all of the metric state variables."""
-        self.confusion_matrix = tf.Variable(tf.zeros((self.num_classes, self.num_classes)), name="confusion_matrix")
+        self.confusion_matrix.assign(tf.zeros((self.num_classes, self.num_classes)))
 
 
 class FBetaScore(tf.keras.metrics.Metric):
