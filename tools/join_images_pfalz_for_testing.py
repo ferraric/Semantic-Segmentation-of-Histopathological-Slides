@@ -44,8 +44,9 @@ def join_input_sclices(input_image_folder, output_image_folder, file_type_name):
                 (new_width, new_height) = new_image.size
                 new_image = new_image.resize((int(new_width/2),int(new_height/2)), resample=Image.BICUBIC)
                 new_image.putpalette([
-                    0, 0, 0,  # black
                     255, 255, 255,  # white
+                    255, 0, 0,  # red
+                    0, 0, 255  # blue
                 ])
                 new_image.save(os.path.join(output_image_folder, file_type_name + previous_original_image_name + ".png"))
                 all_slices_for_image = []
