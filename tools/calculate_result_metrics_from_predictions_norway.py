@@ -34,42 +34,38 @@ if __name__ == '__main__':
     results = pd.DataFrame(columns = column_names)
 
     evaluation_folder = args.inputfolder
-    all_files = list(filter(lambda f: (not "input" in f) and (not "results" in f), os.listdir(evaluation_folder)))
-    all_files.sort(key=lambda x: re.sub("prediction_|label_","",x))
-    extract_wsi_name = lambda f: re.split('_[0-9][0-9]_[0-9][0-9].png', re.split('prediction_|label_', f)[1])[0]
 
-    for i, (wsi_name, slice_names) in enumerate(groupby(all_files, extract_wsi_name)):
-        print("looking at WSI number {}: {}\n".format(i, wsi_name))
-        slice_names = list(slice_names)
-        for file_name in slice_names:
-            if ("label" in file_name):
-                print("looking at slice {}\n".format(file_name))
-                prediction_name = file_name.replace("label", "prediction")
+    for i, file_name in enumerate(os.listdir(evaluation_folder)):
+        if ("label" in file_name):
+            wsi_name = file_name.replace("label", "").replace(".png", "")
+            print("looking at slice {}\n".format(wsi_name))
+            prediction_name = file_name.replace("label", "prediction")
             
-                label_np = np.array(Image.open(os.path.join(evaluation_folder, file_name)))
-                label = tf.dtypes.cast(tf.convert_to_tensor(label_np), tf.float16)
-                prediction_np = np.array(Image.open(os.path.join(evaluation_folder, prediction_name)))
-                prediction = tf.dtypes.cast(tf.convert_to_tensor(prediction_np), tf.float16)
+            label_np = np.array(Image.open(os.path.join(evaluation_folder, file_name)))
+            label = tf.dtypes.cast(tf.convert_to_tensor(label_np), tf.float16)
+            prediction_np = np.array(Image.open(os.path.join(evaluation_folder, prediction_name)))
+            prediction = tf.dtypes.cast(tf.convert_to_tensor(prediction_np), tf.float16)
 
-                accuracy.update_state(label, prediction)
-                precision.update_state(label, prediction)
-                recall.update_state(label, prediction)
-                f1_score.update_state(label, prediction)
-                mean_iou.update_state(label, prediction)
-                matthews_correlation_coefficient.update_state(label, prediction)
+            accuracy.update_state(label, prediction)
+            precision.update_state(label, prediction)
+            recall.update_state(label, prediction)
+            f1_score.update_state(label, prediction)
+            mean_iou.update_state(label, prediction)
+            matthews_correlation_coefficient.update_state(label, prediction)
 
-        results.loc[wsi_name] = {'accuracy': accuracy.result().numpy(),
-                                 'precision': precision.result().numpy(),
-                                 'recall': recall.result().numpy(),
-                                 'f1_score': f1_score.result().numpy(),
-                                 'mean_iou': mean_iou.result().numpy(),
-                                 'matthews_correlation': matthews_correlation_coefficient.result().numpy()}
-        accuracy.reset_states()
-        precision.reset_states()
-        recall.reset_states()
-        f1_score.reset_states()
-        mean_iou.reset_states()
-        matthews_correlation_coefficient.reset_states()
+            results.loc[wsi_name] = {'accuracy': accuracy.result().numpy(),
+                                     'precision': precision.result().numpy(),
+                                     'recall': recall.result().numpy(),
+                                     'f1_score': f1_score.result().numpy(),
+                                     'mean_iou': mean_iou.result().numpy(),
+                                     'matthews_correlation': matthews_correlation_coefficient.result().numpy()}
+            
+            accuracy.reset_states()
+            precision.reset_states()
+            recall.reset_states()
+            f1_score.reset_states()
+            mean_iou.reset_states()
+            matthews_correlation_coefficient.reset_states()
 
     print("Results summary: \n")
     print(results)
@@ -82,6 +78,5 @@ if __name__ == '__main__':
     print("\n")
     print("Std deviations: \n")
     print(results.std(axis=0))
-    results.to_pickle(os.path.join(evaluation_folder, "results")) 
-
+    results.to_pickle(os.path.join(evaluation_folder, "results"))
 
