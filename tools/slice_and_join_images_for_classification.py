@@ -77,7 +77,7 @@ def split_input_images(input_image_folder, output_image_folder):
         # compute slices of size 4096x4096
         number_of_slice_columns = int(newWidth / new_size)
         number_of_slice_rows = int(newHeight / new_size)
-        print("Generating {} sclies".format(number_of_slice_columns*number_of_slice_rows))
+        print("Generating {} sclices".format(number_of_slice_columns*number_of_slice_rows))
         image_tiles = image_slicer.slice(image, col=number_of_slice_columns, row=number_of_slice_rows, save=False)
 
         image_slicer.save_tiles(image_tiles, directory=output_image_folder, prefix=os.path.splitext(image_name)[0], format='png')
