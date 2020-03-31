@@ -23,15 +23,13 @@ if __name__ == '__main__':
     argparser.add_argument("-i", "--inputfolder", help="Add input folder path")
     args = argparser.parse_args()
 
-    n_classes = 2
+    n_classes = 3
 
-    accuracy = tf_keras_metrics.BinaryAccuracy()
-    precision = tf_keras_metrics.Precision()  # positive predictive value in the paper
-    recall = tf_keras_metrics.Recall()  # equivalent to sensitivity in the norway paper
+    accuracy = tf_keras_metrics.CategoricalAccuracy()
     mean_iou = tf.metrics.MeanIoU(num_classes=n_classes)
     matthews_correlation_coefficient = MatthewsCorrelationCoefficient(num_classes=n_classes)
 
-    column_names = ["accuracy", "precision", "recall", "f1_score", "mean_iou", "matthews_correlation"]
+    column_names = ["accuracy", "mean_iou", "matthews_correlation"]
     results = pd.DataFrame(columns = column_names)
 
     evaluation_folder = args.inputfolder
@@ -46,7 +44,7 @@ if __name__ == '__main__':
             if ("label" in file_name):
                 print("looking at slice {}\n".format(file_name))
                 prediction_name = file_name.replace("label", "prediction")
-            
+                
                 label_np = np.array(Image.open(os.path.join(evaluation_folder, file_name)))
                 label = tf.convert_to_tensor(label_np)
                 label_one_hot = tf.dtypes.cast(tf.one_hot(label, n_classes), tf.float16)
@@ -55,28 +53,19 @@ if __name__ == '__main__':
                 prediction = tf.convert_to_tensor(prediction_np)
                 prediction_one_hot = tf.dtypes.cast(tf.one_hot(prediction, n_classes), tf.float16)
                 prediction = tf.dtypes.cast(prediction, tf.float16)
-            
-                accuracy.update_state(label, prediction)
-                precision.update_state(label, prediction)
-                recall.update_state(label, prediction)
+
+                accuracy.update_state(label_one_hot, prediction_one_hot)
                 mean_iou.update_state(label, prediction)
                 matthews_correlation_coefficient.update_state(label, prediction)
 
-        p = precision.result().numpy()
-        r = recall.result().numpy()
-        f1_score = 2*(p*r)/(p+r)
         results.loc[wsi_name] = {'accuracy': accuracy.result().numpy(),
-                                 'precision': p,
-                                 'recall': r,
-                                 'f1_score': f1_score,
                                  'mean_iou': mean_iou.result().numpy(),
                                  'matthews_correlation': matthews_correlation_coefficient.result().numpy()}
+
         accuracy.reset_states()
-        precision.reset_states()
-        recall.reset_states()
         mean_iou.reset_states()
         matthews_correlation_coefficient.reset_states()
-
+            
     print("Results summary: \n")
     print(results)
     print("\n")
@@ -88,6 +77,4 @@ if __name__ == '__main__':
     print("\n")
     print("Std deviations: \n")
     print(results.std(axis=0))
-    results.to_pickle(os.path.join(evaluation_folder, "results")) 
-
-
+    results.to_pickle(os.path.join(evaluation_folder, "results"))
