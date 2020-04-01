@@ -198,3 +198,111 @@ class NorwayTransferLearningDataLoader(TransferLearningDataLoader):
         else:
             self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(
                 self.config.batch_size, drop_remainder=True)
+
+
+class BinaryClassificationDataloader:
+    def __init__(self, config, validation=False, preprocessing=None, use_image_augmentations=False):
+        self.preprocessing = preprocessing
+        self.config = config
+        self.use_image_augmentations = use_image_augmentations
+        if (validation):
+            dataset_path = config.validation_dataset_path
+            print("Validating on the path {}".format(dataset_path))
+
+        else:
+            dataset_path = config.train_dataset_path
+            print("Training on the path {}".format(dataset_path))
+
+        # create list of image and annotation paths
+        all_files = os.listdir(dataset_path)
+        self.slide_paths = []
+        self.annotation_paths = []
+        if(validation):
+            for file in all_files:
+                if "resized" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "prediction" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
+
+        else:
+            for file in all_files:
+                if "resized" in file:
+                    self.slide_paths.append(os.path.join(dataset_path, file))
+                elif "prediction" in file:
+                    self.annotation_paths.append(os.path.join(dataset_path, file))
+
+        self.slide_paths.sort()
+        self.annotation_paths.sort()
+        self.image_count = len(self.slide_paths)
+        annotation_count = len(self.annotation_paths)
+
+        assert self.image_count == annotation_count, (
+            "The slide count is {} and the annotation count is {}, but they should be"
+            " equal".format(self.image_count, annotation_count)
+        )
+
+        self.slide_paths.sort()
+        self.image_count = len(self.slide_paths)
+
+        print("We found {} images".format(self.image_count))
+
+        dataset = tf.data.Dataset.from_tensor_slices({
+            'image_paths': self.slide_paths,
+            'labels': self.annotation_paths
+        })
+
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.float32, tf.float32])))
+        dataset = dataset.map(self._fixup_shape)
+
+        if(validation):
+            self.dataset = dataset.repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+        else:
+            self.dataset = dataset.shuffle(buffer_size=self.config.shuffle_buffer_size).repeat(-1).batch(self.config.batch_size, drop_remainder=True)
+
+
+    def __len__(self):
+        return math.ceil(self.image_count / self.config.batch_size)
+
+    def parse_image_and_label(self, image, label):
+        image_path = image.numpy().decode('UTF-8')
+        label_path = label.numpy().decode('UTF-8')
+
+        image_path_tensor = tf.io.read_file(image_path)
+        img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
+
+        seg_map = np.array(Image.open(label_path)).astype('uint8')
+        seg_map = seg_map[:,:,:3]
+        seg_map = tf.math.divide(seg_map, 255)
+
+
+        #assert seg_map.shape[2] == 1, "seg_map should have 1 channel but has {}".format(label.shape[2])
+
+        img = tf.concat([img, seg_map], axis=-1)
+        if(os.path.split(image_path)[1].startswith("resizedE")):
+            label = tf.constant([0], dtype=tf.float32)
+        elif(os.path.split(image_path)[1].startswith("resizedeMF")):
+            label = tf.constant([1], dtype=tf.float32)
+
+
+        if self.use_image_augmentations:
+            n_rotations = np.random.choice(4)
+            img = tf.image.rot90(img, n_rotations)
+
+            if(np.random.rand(1) > 0.5):
+                img = tf.image.flip_left_right(img)
+            if (np.random.rand(1) > 0.5):
+                img = tf.image.flip_up_down(img)
+
+        if self.preprocessing:
+            img = self.preprocessing(img)
+
+        return img, label
+
+    def _fixup_shape(self, images, labels):
+        images.set_shape([self.config.image_size, self.config.image_size, 6])
+        labels.set_shape([1])
+        return images, labels
+
+
+
+
