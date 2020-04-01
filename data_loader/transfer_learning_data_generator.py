@@ -251,7 +251,7 @@ class BinaryClassificationDataloader:
             'labels': self.annotation_paths
         })
 
-        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.float32, tf.uint8])))
+        dataset = dataset.map(lambda x: (tf.py_function(self.parse_image_and_label, [x['image_paths'], x['labels']], [tf.float32, tf.float32])))
         dataset = dataset.map(self._fixup_shape)
 
         if(validation):
@@ -279,11 +279,11 @@ class BinaryClassificationDataloader:
 
         img = tf.concat([img, seg_map], axis=-1)
         if(os.path.split(image_path)[1].startswith("resizedE")):
-            label = tf.keras.utils.to_categorical(0, num_classes=2)
+            label = tf.constant([0], dtype=tf.float32)
         elif(os.path.split(image_path)[1].startswith("resizedeMF")):
-            label = tf.keras.utils.to_categorical(1, num_classes=2)
+            label = tf.constant([1], dtype=tf.float32)
 
-        label = tf.dtypes.cast(label, tf.uint8)
+
         if self.use_image_augmentations:
             n_rotations = np.random.choice(4)
             img = tf.image.rot90(img, n_rotations)
@@ -300,7 +300,7 @@ class BinaryClassificationDataloader:
 
     def _fixup_shape(self, images, labels):
         images.set_shape([self.config.image_size, self.config.image_size, 6])
-        labels.set_shape([2])
+        labels.set_shape([1])
         return images, labels
 
 

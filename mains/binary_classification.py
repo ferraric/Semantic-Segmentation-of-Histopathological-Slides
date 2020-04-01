@@ -29,8 +29,10 @@ from utils.utils import get_args
 
 
 def main():
+    print("Let's Begin!")
     try:
         args = get_args()
+        print(args.config)
         config = process_config(args.config)
 
     except:
@@ -68,30 +70,16 @@ def main():
     print("loading model")
 
     model = tf.keras.models.Sequential([
-        tf.keras.layers.Conv2D(filters=3, kernel_size=3, padding="same", activation="relu"),
+        tf.keras.layers.Conv2D(filters=6, kernel_size=3, padding="same", activation="relu"),
+        tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(filters=8, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(), #2048
+        tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(filters=16, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(), #1024
-        tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(), #512
-        tf.keras.layers.Conv2D(filters=128, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(), #256
-        tf.keras.layers.Conv2D(filters=156, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=156, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(),  # 128
-        tf.keras.layers.Conv2D(filters=256, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=128, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.MaxPooling2D(), #64
-        tf.keras.layers.Conv2D(filters=64, kernel_size=3, padding="same", activation="relu"),
-        tf.keras.layers.Conv2D(filters=32, kernel_size=3, padding="same", activation="relu"),
+        tf.keras.layers.MaxPooling2D(),
         tf.keras.layers.Conv2D(filters=1, kernel_size=3, padding="same", activation="relu"),
         tf.keras.layers.Flatten(),
         tf.keras.layers.Dense(128, activation='relu'),
-        tf.keras.layers.Dense(2, activation='softmax')
+        tf.keras.layers.Dense(1, activation='sigmoid')
     ])
 
     #model.summary()
@@ -145,26 +133,37 @@ def main():
     recall = tf_keras_metrics.Recall()  # equivalent to sensitivity in the norway paper
     f1_score = F1Score(num_classes=2, average='micro', threshold=0.5)  # dice similarity is equivalent to f1 score
     matthews_corelation_coefficient = MatthewsCorrelationCoefficient()
-    metrics = [accuracy]
+    tp = tf.keras.metrics.TruePositives()
+    tn = tf.keras.metrics.TrueNegatives()
+    fn = tf.keras.metrics.FalseNegatives()
+    fp = tf.keras.metrics.FalsePositives()
+    metrics = [accuracy, precision, recall, f1_score, tp, tn, fn, fp]
 
     model.compile(
         optimizer=optimizer,
-        loss=loss,
+        loss=tf.keras.losses.CosineSimilarity(),
         metrics=metrics
     )
     if (config.save_model):
         checkpoint_path = config.checkpoint_dir + "{epoch:02d}-{val_loss:.2f}.hdf5"
         save_callback = tf.keras.callbacks.ModelCheckpoint(filepath=checkpoint_path,
                                                            monitor='val_loss',
-                                                           save_best_only=True,
+                                                           save_best_only=False,
                                                            save_weights_only=False,
                                                            save_freq='epoch',
                                                            verbose=1)
         callback = [save_callback]
+        
+        #model.build(tf.TensorShape([None, 4096, 4096, 6]))
+        #model.load_weights("/cluster/home/beluis/experiments/transfer_learning_unet/d600a52ffd714b1da0ed496e2030ff6c/checkpoint/04-0.66.hdf5")
+        
+        class_weight = {0: (1 / 41)*(61)/2.0, 1: (1 / 20)*(61)/2.0}
+
         model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader),
                   validation_data=validation_dataloader.dataset,
                   validation_steps=len(validation_dataloader),
                   callbacks=callback,
+                  #class_weight=class_weight,
                   use_multiprocessing=True)
     else:
         model.fit(train_dataloader.dataset, epochs=config.num_epochs, steps_per_epoch=len(train_dataloader),
