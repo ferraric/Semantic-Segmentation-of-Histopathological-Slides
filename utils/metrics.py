@@ -4,6 +4,8 @@ from __future__ import print_function
 import tensorflow as tf
 import tensorflow.keras.backend as K
 from tensorflow.keras.metrics import Metric
+import numpy as np
+
 
 class MeanIouWithArgmax(tf.metrics.MeanIoU):
     def __call__(self, y_true, y_pred, sample_weight=None):
@@ -14,129 +16,33 @@ class MeanIouWithArgmax(tf.metrics.MeanIoU):
         return super().__call__(y_true, y_pred, sample_weight=sample_weight)
 
 
-
-
-class DiceSimilarityCoefficient(Metric):
-    def __init__(self, num_classes, name='dice_similarity_coefcient', **kwargs):
-        super(DiceSimilarityCoefficient, self).__init__(name=name, **kwargs)
-
-        self.num_classes = num_classes
-        self.value = self.add_weight(name='value', initializer='zeros', shape=(num_classes,), dtype=tf.float64)
-
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        y_true = tf.math.argmax(y_true, axis=-1)
-        y_pred = tf.math.argmax(y_pred, axis=-1)
-
-        y_true = tf.dtypes.cast(tf.reshape(y_true, [-1]), dtype=tf.float64)
-        y_pred = tf.dtypes.cast(tf.reshape(y_pred, [-1]), dtype=tf.float64)
-
-        cm = tf.math.confusion_matrix(y_true, y_pred, num_classes=self.num_classes)
-
-        tp = tf.linalg.diag_part(cm)
-        fp = tf.math.reduce_sum(cm, axis=1) - tp
-        fn = tf.math.reduce_sum(cm, axis=0) - tp
-
-
-        ppv = tp / (tp + fp)
-        sen = tp / (tp + fn)
-
-        self.value.assign_add(-self.value)
-        self.value.assign_add(2 * (ppv * sen) / (ppv + sen))
-
-    def result(self):
-        new = tf.boolean_mask(self.value, tf.math.logical_not(tf.math.is_nan(self.value)))
-        return tf.math.reduce_mean(new)
-
-    def reset_states(self):
-        """Resets all of the metric state variables."""
-        tf.keras.backend.set_value(self.value, tf.tile(tf.constant([0], dtype=tf.float64), (self.num_classes,)))
-
-
-
-# TODO THIS METRIC NEEDS TO BE UPDATED, ITS BROKEN CURRENTLY
+# result computation adapted from https://github.com/vlainic/matthews-correlation-coefficient
 class MatthewsCorrelationCoefficient(tf.keras.metrics.Metric):
-    def __init__(self, name="matthews_correlation_coefcient", **kwargs):
+    def __init__(self, num_classes, name="matthews_correlation_coefcient", **kwargs):
         super(MatthewsCorrelationCoefficient, self).__init__(name=name, **kwargs)
-        self.tp = tf.keras.metrics.TruePositives()
-        self.tn = tf.keras.metrics.TrueNegatives()
-        self.fp = tf.keras.metrics.FalsePositives()
-        self.fn = tf.keras.metrics.FalseNegatives()
+        self.num_classes = num_classes
+        self.confusion_matrix = tf.Variable(tf.zeros((self.num_classes, self.num_classes)), name="confusion_matrix")
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-
-        self.tp.reset_states()
-        self.tp.update_state(y_true, y_pred)
-
-        self.tn.reset_states()
-        self.tn.update_state(y_true, y_pred)
-
-        self.fp.reset_states()
-        self.fp.update_state(y_true, y_pred)
-
-        self.fn.reset_states()
-        self.fn.update_state(y_true, y_pred)
+        new_confusion_matrix = tf.math.confusion_matrix(tf.reshape(y_true, [-1]), tf.reshape(y_pred, [-1]),
+                                                        num_classes=self.num_classes, dtype=tf.dtypes.float32)
+        assert self.confusion_matrix.shape == new_confusion_matrix.shape
+        self.confusion_matrix.assign(self.confusion_matrix + new_confusion_matrix)
 
     def result(self):
-        tp = self.tp.result()
-        tn = self.tn.result()
-        fp = self.fp.result()
-        fn = self.fn.result()
-        top = (tp * tn) - (fp * fn)
-        bottom = tf.math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-        return tf.math.divide_no_nan(top, bottom)
+        N = K.sum(self.confusion_matrix)
+        up = N * tf.linalg.trace(self.confusion_matrix) - K.sum(tf.matmul(self.confusion_matrix, self.confusion_matrix))
+        down_left = K.sqrt(N ** 2 - K.sum(tf.matmul(self.confusion_matrix, K.transpose(self.confusion_matrix))))
+        down_right = K.sqrt(N ** 2 - K.sum(tf.matmul(K.transpose(self.confusion_matrix), self.confusion_matrix)))
+
+        mcc = up / (down_left * down_right + K.epsilon())
+        mcc = tf.where(tf.math.is_nan(mcc), tf.zeros_like(mcc), mcc)
+
+        return K.mean(mcc)
 
     def reset_states(self):
         """Resets all of the metric state variables."""
-        self.tp = tf.keras.metrics.TruePositives()
-        self.tn = tf.keras.metrics.TrueNegatives()
-        self.fp = tf.keras.metrics.FalsePositives()
-        self.fn = tf.keras.metrics.FalseNegatives()
-
-class MatthewsCorrelationCoefficientArgmax(tf.keras.metrics.Metric):
-    def __init__(self, name="matthews_correlation_coefcient", **kwargs):
-        super(MatthewsCorrelationCoefficient, self).__init__(name=name, **kwargs)
-        self.tp = tf.keras.metrics.TruePositives()
-        self.tn = tf.keras.metrics.TrueNegatives()
-        self.fp = tf.keras.metrics.FalsePositives()
-        self.fn = tf.keras.metrics.FalseNegatives()
-
-    def update_state(self, y_true, y_pred, sample_weight=None):
-        num_classes = tf.shape(y_true)[-1]
-        y_pred = tf.one_hot(tf.argmax(y_pred, axis=-1), num_classes)
-        y_true = tf.one_hot(tf.argmax(y_true, axis=-1), num_classes)
-
-        y_true = tf.reshape(y_true, [-1])
-        y_pred = tf.reshape(y_pred, [-1])
-
-        self.tp.reset_states()
-        self.tp.update_state(y_true, y_pred)
-
-        self.tn.reset_states()
-        self.tn.update_state(y_true, y_pred)
-
-        self.fp.reset_states()
-        self.fp.update_state(y_true, y_pred)
-
-        self.fn.reset_states()
-        self.fn.update_state(y_true, y_pred)
-
-    def result(self):
-        tp = self.tp.result()
-        tn = self.tn.result()
-        fp = self.fp.result()
-        fn = self.fn.result()
-        top = (tp * tn) - (fp * fn)
-        bottom = tf.math.sqrt((tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-        return tf.math.divide_no_nan(top, bottom)
-
-    def reset_states(self):
-        """Resets all of the metric state variables."""
-        self.tp = tf.keras.metrics.TruePositives()
-        self.tn = tf.keras.metrics.TrueNegatives()
-        self.fp = tf.keras.metrics.FalsePositives()
-        self.fn = tf.keras.metrics.FalseNegatives()
-
-
+        self.confusion_matrix.assign(tf.zeros((self.num_classes, self.num_classes)))
 
 
 class FBetaScore(tf.keras.metrics.Metric):

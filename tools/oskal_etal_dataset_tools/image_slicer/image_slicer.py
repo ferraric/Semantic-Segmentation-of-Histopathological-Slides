@@ -76,7 +76,7 @@ def get_combined_size(tiles):
     return (tile_size[0] * columns, tile_size[1] * rows)
 
 
-def join(tiles, width=0, height=0):
+def join(tiles, width=0, height=0, is_rgb=True):
     """
     @param ``tiles`` - Tuple of ``Image`` instances.
     @param ``width`` - Optional, width of combined image.
@@ -87,11 +87,14 @@ def join(tiles, width=0, height=0):
     # this allows an application that knows what the
     # combined size should be to construct an image when
     # pieces are missing.
-
-    if width > 0 and height > 0:
-        im = Image.new('RGB', (width, height), None)
+    if(is_rgb):
+        mode = 'RGB'
     else:
-        im = Image.new('RGB', get_combined_size(tiles), None)
+        mode = 'P'
+    if width > 0 and height > 0:
+        im = Image.new(mode, (width, height), None)
+    else:
+        im = Image.new(mode, get_combined_size(tiles), None)
     columns, rows = calc_columns_rows(len(tiles))
     for tile in tiles:
         try:
@@ -104,7 +107,7 @@ def join(tiles, width=0, height=0):
 
 def validate_image(image, number_tiles):
     """Basic sanity checks prior to performing a split."""
-    TILE_LIMIT = 99 * 99
+    TILE_LIMIT = 999 * 999
 
     try:
         number_tiles = int(number_tiles)
@@ -118,7 +121,7 @@ def validate_image(image, number_tiles):
 
 def validate_image_col_row(image, col, row):
     """Basic checks for columns and rows values"""
-    SPLIT_LIMIT = 99
+    SPLIT_LIMIT = 999
 
     try:
         col = int(col)

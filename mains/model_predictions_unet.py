@@ -10,17 +10,17 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
-
 import tensorflow.keras.losses as tf_keras_losses
 import segmentation_models as sm
 from utils.config import process_config
+from models.unet import UNetModel
 import efficientnet.tfkeras
 
 
 class PfalzTestdataLoader:
     def __init__(self, config, evaluation_folder_inputs, evaluation_folder_labels):
         self.config = config
-        self.preprocessing = sm.get_preprocessing(config.backbone)
+        self.preprocessing = lambda im: im / 255.0
 
 
         # create list of image and annotation paths
@@ -65,9 +65,11 @@ class PfalzTestdataLoader:
 
         self.dataset = dataset.repeat(1).batch(1, drop_remainder=False)
 
+
     def parse_image_and_label(self, image, label, is_norwegian_data):
         image_path = image.numpy().decode('UTF-8')
         label_path = label.numpy().decode('UTF-8')
+
         image_path_tensor = tf.io.read_file(image_path)
         img = tf.dtypes.cast(tf.image.decode_png(image_path_tensor, channels=3), tf.float32)
         # Load image with Pillow to make sure we lod it in palette mode.        assert label.shape == (self.config.image_size, self.config.image_size, 1), label.shape
@@ -88,7 +90,9 @@ class PfalzTestdataLoader:
 
         img = self.preprocessing(img)
 
+
         return img, label, image_path
+
 
     def _fixup_shape(self, images, labels, image_path_names):
         images.set_shape([None, None, 3])
@@ -99,7 +103,7 @@ class PfalzTestdataLoader:
 class NorwayTestDataLoader(PfalzTestdataLoader):
     def __init__(self, config, evaluation_folder_inputs, evaluation_folder_labels):
         self.config = config
-        self.preprocessing = sm.get_preprocessing(config.backbone)
+        self.preprocessing = lambda im: im / 255.0
 
         self.slide_paths = []
         self.annotation_paths = []
@@ -145,13 +149,9 @@ class NorwayTestDataLoader(PfalzTestdataLoader):
 
 
 
-def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_labels, config, output_folder):
+def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_labels, config, output_folder, start_index):
     assert os.path.isdir(evaluation_folder_inputs)
     assert os.path.isdir(evaluation_folder_labels)
-
-    print("Sanity checking that the model you are loading actually is the right one")
-    model.summary()
-
 
     number_of_test_images = 0
 
@@ -163,18 +163,24 @@ def evaluate_model_on_images(model, evaluation_folder_inputs, evaluation_folder_
     for i, el in enumerate(test_data_set_loader.dataset):
         print("Test image {} of {}".format(i+1, test_data_set_loader.image_count))
         logging.warning("Test image {} of {}".format(i+1, test_data_set_loader.image_count))
+        if i <= start_index:
+            print("skipping")
+            continue
         input = el[0]
         label = el[1]
         image_path = el[2].numpy()[0].decode('UTF-8')
 
         image_name = os.path.split(image_path)[-1]
         prediction = model.predict(input)
-        save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder)
+        save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, i)
+
+    print("Sanity checking that the model you are loading actually is the right one")
+    model.summary()
 
     assert number_of_test_images == test_data_set_loader.image_count, "Should be equal but is {} and {}".format(number_of_test_images, test_data_set_loader.image_count)
 
 
-def save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder ):
+def save_input_label_and_prediction(input, label, prediction, image_name, config, output_folder, step ):
 
     assert input[0].numpy().shape == (config.image_size, config.image_size, 3), input[0].numpy().shape
     assert label[0].numpy().shape == (config.image_size, config.image_size, config.number_of_classes), label[0].numpy().shape
@@ -222,6 +228,25 @@ def save_input_label_and_prediction(input, label, prediction, image_name, config
     label_image.save(os.path.join(output_folder, "label_{}".format(image_name)))
 
 
+def build_model_from_config(config):
+    model = UNetModel(config)
+    lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+        initial_learning_rate=config.learning_rate,
+        decay_steps=config.decay_steps,
+        decay_rate=config.decay_rate,
+        staircase=config.lr_decay_staircase)
+    optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+    precision = tf.keras.metrics.Precision()
+    recall = tf.keras.metrics.Recall()
+    accuracy = tf.keras.metrics.binary_accuracy
+    metrics = [precision, recall, accuracy]
+    model.compile(
+        optimizer=optimizer,
+        loss=tf.keras.losses.categorical_crossentropy,
+         metrics=metrics,
+    )
+    return model
+
 
 if __name__ == '__main__':
     argparser = argparse.ArgumentParser()
@@ -230,9 +255,11 @@ if __name__ == '__main__':
     argparser.add_argument("-m", "--model_to_load", help="Add folder with the model you want to load")
     argparser.add_argument("-c", "--config", help="Pass some config, make sure to adjust the image size")
     argparser.add_argument("-o", "--output_folder", help="Output folder")
+    argparser.add_argument("-si", "--start_index", help="slide number where to start")
     logging.basicConfig(filename='results.log', filemode='w', format='%(name)s - %(levelname)s - %(message)s')
     args = argparser.parse_args()
 
     config = process_config(args.config)
-    loaded_model = tf.keras.models.load_model(args.model_to_load, compile=False)
-    evaluate_model_on_images(loaded_model, args.evaluation_folder_inputs, args.evaluation_folder_labels, config, args.output_folder)
+    model = build_model_from_config(config)
+    model.load_weights(args.model_to_load)
+    evaluate_model_on_images(model, args.evaluation_folder_inputs, args.evaluation_folder_labels, config, args.output_folder, int(args.start_index))
