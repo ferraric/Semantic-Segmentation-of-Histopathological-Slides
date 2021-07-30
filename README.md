@@ -139,9 +139,26 @@ parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 ```
 
-## Citations
+## Acknowledgements
 The initial framework for our project was taken from https://github.com/MrGemy95/Tensorflow-Project-Template
 but heavily edited for tensorflow 2.0 compatibility. 
 
 The whole transfer learning Code was taken from https://github.com/qubvel/segmentation_models, 
 we added and changed a few things here and there but we are thankful for this amazing code. 
+
+## Citation
+If you use this code, please cite the [paper](https://arxiv.org/abs/2009.05403).
+```bibtex
+@article{Scheurer_2020,
+   title={Semantic Segmentation of Histopathological Slides for the Classification of Cutaneous Lymphoma and Eczema},
+   ISBN={9783030527914},
+   ISSN={1865-0937},
+   url={http://dx.doi.org/10.1007/978-3-030-52791-4_3},
+   DOI={10.1007/978-3-030-52791-4_3},
+   journal={Medical Image Understanding and Analysis},
+   publisher={Springer International Publishing},
+   author={Scheurer, Jérémy and Ferrari, Claudio and Berenguer Todo Bom, Luis and Beer, Michaela and Kempf, Werner and Haug, Luis},
+   year={2020},
+   pages={26–42}
+}
+```
